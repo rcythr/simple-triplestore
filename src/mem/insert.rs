@@ -1,0 +1,352 @@
+use ulid::Ulid;
+
+use crate::Triple;
+
+use super::MemTripleStore;
+
+impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties, EdgeProperties> {
+    pub(super) fn handle_insert_node(
+        &mut self,
+        node: Ulid,
+        data: NodeProperties,
+    ) -> Result<(), ()> {
+        match self.node_props.entry(node) {
+            std::collections::hash_map::Entry::Occupied(mut o) => {
+                o.insert(data);
+            }
+            std::collections::hash_map::Entry::Vacant(v) => {
+                v.insert(data);
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn handle_insert_node_batch(
+        &mut self,
+        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
+    ) -> Result<(), ()> {
+        for (node, data) in nodes {
+            self.handle_insert_node(node, data)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn insert_edge_data_internal(&mut self, triple: &Triple, new_edge_data_id: &Ulid) {
+        self.spo_data
+            .insert(Triple::encode_spo(&triple), new_edge_data_id.clone());
+        self.pos_data
+            .insert(Triple::encode_pos(&triple), new_edge_data_id.clone());
+        self.osp_data
+            .insert(Triple::encode_osp(&triple), new_edge_data_id.clone());
+    }
+
+    /// Handles the case where we are treating the edge data as new for the first time.
+    /// Either because it is, or because we're not using merge semantics.
+    pub(super) fn insert_edge_create_data(
+        &mut self,
+        old_edge_data_id: &Option<Ulid>,
+        new_edge_data: EdgeProperties,
+    ) -> Ulid {
+        let new_edge_data_id = Ulid::new();
+
+        self.edge_props.insert(new_edge_data_id, new_edge_data);
+
+        // Clean up the old data.
+        if let Some(old_edge_data_id) = old_edge_data_id {
+            self.edge_props.remove(&old_edge_data_id);
+        }
+
+        new_edge_data_id
+    }
+
+    pub(super) fn handle_insert_edge(
+        &mut self,
+        triple: Triple,
+        data: EdgeProperties,
+    ) -> Result<(), ()> {
+        let old_edge_data_id = match self.spo_data.entry(Triple::encode_spo(&triple)) {
+            std::collections::btree_map::Entry::Vacant(_) => None,
+            std::collections::btree_map::Entry::Occupied(o) => Some(o.get().clone()),
+        };
+
+        let new_edge_data_id = self.insert_edge_create_data(&old_edge_data_id, data);
+
+        self.insert_edge_data_internal(&triple, &new_edge_data_id);
+
+        Ok(())
+    }
+
+    pub(super) fn handle_insert_edge_batch(
+        &mut self,
+        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+    ) -> Result<(), ()> {
+        for (triple, data) in triples {
+            self.handle_insert_edge(triple, data)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use ulid::Ulid;
+
+    use crate::{MemTripleStore, Triple, TripleStore};
+
+    #[test]
+    fn test_insert_node() {
+        // foo   bar   baz   quz
+
+        let mut db: MemTripleStore<String, String> = MemTripleStore::new();
+
+        let (node_1, data_1) = (Ulid(1), "foo".to_string());
+        let (node_2, data_2) = (Ulid(2), "bar".to_string());
+        let (node_3, data_3) = (Ulid(3), "baz".to_string());
+        let (node_4, data_4) = (Ulid(4), "quz".to_string());
+
+        db.insert_node(node_1.clone(), data_1.clone())
+            .expect("Insert should succeed");
+        db.insert_node(node_2.clone(), data_2.clone())
+            .expect("Insert should succeed");
+        db.insert_node(node_3.clone(), data_3.clone())
+            .expect("Insert should succeed");
+        db.insert_node(node_4.clone(), data_4.clone())
+            .expect("Insert should succeed");
+
+        assert_eq!(db.node_props.len(), 4);
+        assert_eq!(
+            *db.node_props.get(&node_1).expect("node_1 should be found"),
+            data_1
+        );
+        assert_eq!(
+            *db.node_props.get(&node_2).expect("node_2 should be found"),
+            data_2
+        );
+        assert_eq!(
+            *db.node_props.get(&node_3).expect("node_3 should be found"),
+            data_3
+        );
+        assert_eq!(
+            *db.node_props.get(&node_4).expect("node_4 should be found"),
+            data_4
+        );
+        assert_eq!(db.edge_props.len(), 0);
+        assert_eq!(db.spo_data.len(), 0);
+        assert_eq!(db.pos_data.len(), 0);
+        assert_eq!(db.osp_data.len(), 0);
+    }
+
+    #[test]
+    fn test_insert_node_batch() {
+        // foo   bar   baz   quz
+
+        let mut db: MemTripleStore<String, String> = MemTripleStore::new();
+
+        let (node_1, data_1) = (Ulid(1), "foo".to_string());
+        let (node_2, data_2) = (Ulid(2), "bar".to_string());
+        let (node_3, data_3) = (Ulid(3), "baz".to_string());
+        let (node_4, data_4) = (Ulid(4), "quz".to_string());
+
+        db.insert_node_batch(
+            [
+                (node_1.clone(), data_1.clone()),
+                (node_2.clone(), data_2.clone()),
+                (node_3.clone(), data_3.clone()),
+                (node_4.clone(), data_4.clone()),
+            ]
+            .into_iter(),
+        )
+        .expect("insert should succeed");
+
+        assert_eq!(db.node_props.len(), 4);
+        assert_eq!(
+            *db.node_props.get(&node_1).expect("node_1 should be found"),
+            data_1
+        );
+        assert_eq!(
+            *db.node_props.get(&node_2).expect("node_2 should be found"),
+            data_2
+        );
+        assert_eq!(
+            *db.node_props.get(&node_3).expect("node_3 should be found"),
+            data_3
+        );
+        assert_eq!(
+            *db.node_props.get(&node_4).expect("node_4 should be found"),
+            data_4
+        );
+        assert_eq!(db.edge_props.len(), 0);
+        assert_eq!(db.spo_data.len(), 0);
+        assert_eq!(db.pos_data.len(), 0);
+        assert_eq!(db.osp_data.len(), 0);
+    }
+
+    #[test]
+    fn test_insert_edge() {
+        // foo -1-> bar -2-> baz -3-> quz
+
+        let mut db: MemTripleStore<String, String> = MemTripleStore::new();
+
+        let (node_1, node_data_1) = (Ulid(1), "foo".to_string());
+        let (node_2, node_data_2) = (Ulid(2), "bar".to_string());
+        let (node_3, node_data_3) = (Ulid(3), "baz".to_string());
+        let (node_4, node_data_4) = (Ulid(4), "quz".to_string());
+
+        db.insert_node_batch(
+            [
+                (node_1.clone(), node_data_1.clone()),
+                (node_2.clone(), node_data_2.clone()),
+                (node_3.clone(), node_data_3.clone()),
+                (node_4.clone(), node_data_4.clone()),
+            ]
+            .into_iter(),
+        )
+        .expect("insert should succeed");
+
+        let (edge_1, edge_data_1) = (Ulid(1), "-1->".to_string());
+        let (edge_2, edge_data_2) = (Ulid(2), "-2->".to_string());
+        let (edge_3, edge_data_3) = (Ulid(3), "-3->".to_string());
+
+        db.insert_edge(
+            Triple {
+                sub: node_1.clone(),
+                pred: edge_1.clone(),
+                obj: node_2.clone(),
+            },
+            edge_data_1.clone(),
+        )
+        .expect("insert edge should succeed");
+        db.insert_edge(
+            Triple {
+                sub: node_2.clone(),
+                pred: edge_2.clone(),
+                obj: node_3.clone(),
+            },
+            edge_data_2.clone(),
+        )
+        .expect("insert edge should succeed");
+        db.insert_edge(
+            Triple {
+                sub: node_3.clone(),
+                pred: edge_3.clone(),
+                obj: node_4.clone(),
+            },
+            edge_data_3.clone(),
+        )
+        .expect("insert edge should succeed");
+
+        assert_eq!(db.node_props.len(), 4);
+        assert_eq!(
+            *db.node_props.get(&node_1).expect("node_1 should be found"),
+            node_data_1
+        );
+        assert_eq!(
+            *db.node_props.get(&node_2).expect("node_2 should be found"),
+            node_data_2
+        );
+        assert_eq!(
+            *db.node_props.get(&node_3).expect("node_3 should be found"),
+            node_data_3
+        );
+        assert_eq!(
+            *db.node_props.get(&node_4).expect("node_4 should be found"),
+            node_data_4
+        );
+        assert_eq!(db.edge_props.len(), 3);
+        assert_eq!(
+            db.edge_props
+                .into_values()
+                .collect::<std::collections::HashSet<_>>(),
+            [edge_data_1, edge_data_2, edge_data_3].into()
+        );
+        assert_eq!(db.spo_data.len(), 3);
+        assert_eq!(db.pos_data.len(), 3);
+        assert_eq!(db.osp_data.len(), 3);
+    }
+
+    #[test]
+    fn test_insert_edge_batch() {
+        // foo -1-> bar -2-> baz -3-> quz
+
+        let mut db: MemTripleStore<String, String> = MemTripleStore::new();
+
+        let (node_1, node_data_1) = (Ulid(1), "foo".to_string());
+        let (node_2, node_data_2) = (Ulid(2), "bar".to_string());
+        let (node_3, node_data_3) = (Ulid(3), "baz".to_string());
+        let (node_4, node_data_4) = (Ulid(4), "quz".to_string());
+
+        db.insert_node_batch(
+            [
+                (node_1.clone(), node_data_1.clone()),
+                (node_2.clone(), node_data_2.clone()),
+                (node_3.clone(), node_data_3.clone()),
+                (node_4.clone(), node_data_4.clone()),
+            ]
+            .into_iter(),
+        )
+        .expect("insert should succeed");
+
+        let (edge_1, edge_data_1) = (Ulid(1), "-1->".to_string());
+        let (edge_2, edge_data_2) = (Ulid(2), "-2->".to_string());
+        let (edge_3, edge_data_3) = (Ulid(3), "-3->".to_string());
+
+        db.insert_edge_batch(
+            [
+                (
+                    Triple {
+                        sub: node_1.clone(),
+                        pred: edge_1.clone(),
+                        obj: node_2.clone(),
+                    },
+                    edge_data_1.clone(),
+                ),
+                (
+                    Triple {
+                        sub: node_2.clone(),
+                        pred: edge_2.clone(),
+                        obj: node_3.clone(),
+                    },
+                    edge_data_2.clone(),
+                ),
+                (
+                    Triple {
+                        sub: node_3.clone(),
+                        pred: edge_3.clone(),
+                        obj: node_4.clone(),
+                    },
+                    edge_data_3.clone(),
+                ),
+            ]
+            .into_iter(),
+        )
+        .expect("insert_edge_batch should work");
+
+        assert_eq!(db.node_props.len(), 4);
+        assert_eq!(
+            *db.node_props.get(&node_1).expect("node_1 should be found"),
+            node_data_1
+        );
+        assert_eq!(
+            *db.node_props.get(&node_2).expect("node_2 should be found"),
+            node_data_2
+        );
+        assert_eq!(
+            *db.node_props.get(&node_3).expect("node_3 should be found"),
+            node_data_3
+        );
+        assert_eq!(
+            *db.node_props.get(&node_4).expect("node_4 should be found"),
+            node_data_4
+        );
+        assert_eq!(db.edge_props.len(), 3);
+        assert_eq!(
+            db.edge_props
+                .into_values()
+                .collect::<std::collections::HashSet<_>>(),
+            [edge_data_1, edge_data_2, edge_data_3].into()
+        );
+        assert_eq!(db.spo_data.len(), 3);
+        assert_eq!(db.pos_data.len(), 3);
+        assert_eq!(db.osp_data.len(), 3);
+    }
+}
