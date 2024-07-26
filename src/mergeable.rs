@@ -9,3 +9,13 @@ pub trait Mergeable {
 impl Mergeable for () {
     fn merge(&mut self, _other: Self) {}
 }
+
+#[cfg(test)]
+mod test {
+    use super::Mergeable;
+
+    #[test]
+    fn test_merge_unit() {
+        assert_eq!(().merge(()), ());
+    }
+}

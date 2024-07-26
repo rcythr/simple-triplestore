@@ -3,11 +3,11 @@ use ulid::Ulid;
 use super::Triple;
 
 impl Triple {
-    pub fn key_bounds_s(sub: Ulid) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
+    pub fn key_bounds_1(a: Ulid) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
         (
             std::ops::Bound::Included(
                 Triple {
-                    sub: sub,
+                    sub: a,
                     pred: Ulid(u128::MIN),
                     obj: Ulid(u128::MIN),
                 }
@@ -15,7 +15,7 @@ impl Triple {
             ),
             std::ops::Bound::Included(
                 Triple {
-                    sub: sub,
+                    sub: a,
                     pred: Ulid(u128::MAX),
                     obj: Ulid(u128::MAX),
                 }
@@ -24,117 +24,97 @@ impl Triple {
         )
     }
 
-    pub fn key_bounds_sp(
-        sub: Ulid,
-        pred: Ulid,
+    pub fn key_bounds_2(
+        a: Ulid,
+        b: Ulid,
     ) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
         (
             std::ops::Bound::Included(
                 Triple {
-                    sub: sub,
-                    pred: pred,
+                    sub: a,
+                    pred: b,
                     obj: Ulid(u128::MIN),
                 }
                 .encode_spo(),
             ),
             std::ops::Bound::Included(
                 Triple {
-                    sub: sub,
-                    pred: pred,
+                    sub: a,
+                    pred: b,
                     obj: Ulid(u128::MAX),
                 }
                 .encode_spo(),
             ),
         )
     }
+}
 
-    pub fn key_bounds_p(pred: Ulid) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
-        (
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MIN),
-                    pred: pred,
-                    obj: Ulid(u128::MIN),
-                }
-                .encode_pos(),
-            ),
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MAX),
-                    pred: pred,
-                    obj: Ulid(u128::MAX),
-                }
-                .encode_pos(),
-            ),
-        )
+#[cfg(test)]
+mod test {
+    use ulid::Ulid;
+
+    use crate::Triple;
+    use std::ops::Bound::Included;
+
+    fn id_1() -> Ulid {
+        Ulid(0xDEADBEEFDEADBEEFDEADBEEFDEADBEEF)
     }
 
-    pub fn key_bounds_po(
-        pred: Ulid,
-        obj: Ulid,
-    ) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
-        (
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MIN),
-                    pred: pred,
-                    obj: obj,
-                }
-                .encode_pos(),
-            ),
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MAX),
-                    pred: pred,
-                    obj: obj,
-                }
-                .encode_pos(),
-            ),
-        )
+    fn id_2() -> Ulid {
+        Ulid(0xCAFEBABECAFEBABECAFEBABECAFEBABE)
     }
 
-    pub fn key_bounds_o(obj: Ulid) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
-        (
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MIN),
-                    pred: Ulid(u128::MIN),
-                    obj: obj,
-                }
-                .encode_osp(),
-            ),
-            std::ops::Bound::Included(
-                Triple {
-                    sub: Ulid(u128::MAX),
-                    pred: Ulid(u128::MAX),
-                    obj: obj,
-                }
-                .encode_osp(),
-            ),
-        )
+    #[test]
+    fn test_key_bounds_1() {
+        if let (Included(lb), Included(ub)) = Triple::key_bounds_1(id_1()) {
+            assert_eq!(
+                lb,
+                [
+                    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE,
+                    0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                ]
+            );
+            assert_eq!(
+                ub,
+                [
+                    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE,
+                    0xAD, 0xBE, 0xEF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+                ]
+            );
+        } else {
+            //Bounds should be included on both ends.
+            assert!(false);
+        }
     }
 
-    pub fn key_bounds_os(
-        obj: Ulid,
-        sub: Ulid,
-    ) -> (std::ops::Bound<[u8; 48]>, std::ops::Bound<[u8; 48]>) {
-        (
-            std::ops::Bound::Included(
-                Triple {
-                    sub: sub,
-                    pred: Ulid(u128::MIN),
-                    obj: obj,
-                }
-                .encode_osp(),
-            ),
-            std::ops::Bound::Included(
-                Triple {
-                    sub: sub,
-                    pred: Ulid(u128::MAX),
-                    obj: obj,
-                }
-                .encode_osp(),
-            ),
-        )
+    #[test]
+    fn test_key_bounds_2() {
+        if let (Included(lb), Included(ub)) = Triple::key_bounds_2(id_1(), id_2()) {
+            assert_eq!(
+                lb,
+                [
+                    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE,
+                    0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE, 0xCA, 0xFE, 0xBA, 0xBE, 0xCA, 0xFE,
+                    0xBA, 0xBE, 0xCA, 0xFE, 0xBA, 0xBE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                ]
+            );
+            assert_eq!(
+                ub,
+                [
+                    0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE,
+                    0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE, 0xCA, 0xFE, 0xBA, 0xBE, 0xCA, 0xFE,
+                    0xBA, 0xBE, 0xCA, 0xFE, 0xBA, 0xBE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+                ]
+            );
+        } else {
+            //Bounds should be included on both ends.
+            assert!(false);
+        }
     }
 }
