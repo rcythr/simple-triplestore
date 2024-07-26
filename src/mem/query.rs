@@ -1,6 +1,7 @@
 use ulid::Ulid;
 
-use crate::{Query, Triple, TripleStore};
+use crate::{Query, Triple, TripleStoreInsert};
+use crate::{TripleStoreExtend, TripleStoreQuery};
 
 use super::MemTripleStore;
 
@@ -13,7 +14,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
             Query::Union { left, right } => {
                 let mut left = self.handle_query(*left)?;
                 let right = self.handle_query(*right)?;
-                left.extend(right);
+                left.extend(right)?;
                 left
             }
 
@@ -53,7 +54,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                             && result.node_props.contains_key(&triple.obj)
                         {
                             if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                                result.handle_insert_edge(triple, data.clone())?;
+                                result.insert_edge(triple, data.clone())?;
                             }
                         }
                         left = left_iter.next();
@@ -95,7 +96,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         let triple = Triple::decode_spo(&left_key);
 
                         if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                            result.handle_insert_edge(triple, data.clone())?;
+                            result.insert_edge(triple, data.clone())?;
                         }
 
                         left = left_iter.next();
@@ -110,7 +111,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                 while left.is_some() {
                     let triple = Triple::decode_spo(&left.as_ref().unwrap().0);
                     if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                        result.handle_insert_edge(triple, data.clone())?;
+                        result.insert_edge(triple, data.clone())?;
                     }
                     left = left_iter.next();
                 }
@@ -136,15 +137,15 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                 {
                     if let Some(data_id) = self.spo_data.get(&triple.encode_spo()) {
                         if let Some(sub_data) = self.node_props.get(&triple.sub) {
-                            result.handle_insert_node(triple.sub, sub_data.clone())?;
+                            result.insert_node(triple.sub, sub_data.clone())?;
                         }
 
                         if let Some(obj_data) = self.node_props.get(&triple.obj) {
-                            result.handle_insert_node(triple.obj, obj_data.clone())?;
+                            result.insert_node(triple.obj, obj_data.clone())?;
                         }
 
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(triple, data.clone())?;
+                            result.insert_edge(triple, data.clone())?;
                         }
                     }
                 }
@@ -173,7 +174,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_spo(&key), data.clone())?;
+                            result.insert_edge(Triple::decode_spo(&key), data.clone())?;
                         }
                     }
                 }
@@ -202,7 +203,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_spo(&key), data.clone())?;
+                            result.insert_edge(Triple::decode_spo(&key), data.clone())?;
                         }
                     }
                 }
@@ -231,7 +232,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_osp(key), data.clone())?;
+                            result.insert_edge(Triple::decode_osp(key), data.clone())?;
                         }
                     }
                 }
@@ -260,7 +261,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_pos(key), data.clone())?;
+                            result.insert_edge(Triple::decode_pos(key), data.clone())?;
                         }
                     }
                 }
@@ -289,7 +290,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_pos(key), data.clone())?;
+                            result.insert_edge(Triple::decode_pos(key), data.clone())?;
                         }
                     }
                 }
@@ -318,12 +319,24 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                         ),
                     )) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.handle_insert_edge(Triple::decode_osp(key), data.clone())?;
+                            result.insert_edge(Triple::decode_osp(key), data.clone())?;
                         }
                     }
                 }
                 result
             }
         })
+    }
+}
+
+impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreQuery<NodeProperties, EdgeProperties>
+    for MemTripleStore<NodeProperties, EdgeProperties>
+{
+    type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    fn query(
+        &mut self,
+        query: Query,
+    ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
+        self.handle_query(query)
     }
 }

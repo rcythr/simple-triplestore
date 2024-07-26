@@ -1,34 +1,12 @@
 use ulid::Ulid;
 
-use crate::{Mergeable, Triple};
+use crate::{Mergeable, Triple, TripleStoreMerge};
 
 use super::MemTripleStore;
 
 impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
-    pub(super) fn handle_merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), ()> {
-        match self.node_props.entry(node) {
-            std::collections::hash_map::Entry::Occupied(mut o) => {
-                o.get_mut().merge(data);
-            }
-            std::collections::hash_map::Entry::Vacant(v) => {
-                v.insert(data);
-            }
-        }
-        Ok(())
-    }
-
-    pub(super) fn handle_merge_node_batch(
-        &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
-    ) -> Result<(), ()> {
-        for (node, data) in nodes {
-            self.handle_merge_node(node, data)?;
-        }
-        Ok(())
-    }
-
     fn merge_edge_create_data(
         &mut self,
         old_edge_data_id: Option<Ulid>,
@@ -48,12 +26,71 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
             self.insert_edge_create_data(&old_edge_data_id, new_edge_data)
         }
     }
+}
 
-    pub(super) fn handle_merge_edge(
+impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
+    TripleStoreMerge<NodeProperties, EdgeProperties>
+    for MemTripleStore<NodeProperties, EdgeProperties>
+{
+    fn merge(&mut self, other: Self) {
+        for (id, data) in other.node_props {
+            match self.node_props.entry(id) {
+                std::collections::hash_map::Entry::Occupied(mut o) => {
+                    o.get_mut().merge(data);
+                }
+                std::collections::hash_map::Entry::Vacant(v) => {
+                    v.insert(data);
+                }
+            }
+        }
+
+        for (id, data) in other.edge_props {
+            match self.edge_props.entry(id) {
+                std::collections::hash_map::Entry::Occupied(mut o) => {
+                    o.get_mut().merge(data);
+                }
+                std::collections::hash_map::Entry::Vacant(v) => {
+                    v.insert(data);
+                }
+            }
+        }
+
+        for (id, data) in other.spo_data {
+            self.spo_data.insert(id, data);
+        }
+
+        for (id, data) in other.pos_data {
+            self.pos_data.insert(id, data);
+        }
+
+        for (id, data) in other.osp_data {
+            self.osp_data.insert(id, data);
+        }
+    }
+
+    fn merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), ()> {
+        match self.node_props.entry(node) {
+            std::collections::hash_map::Entry::Occupied(mut o) => {
+                o.get_mut().merge(data);
+            }
+            std::collections::hash_map::Entry::Vacant(v) => {
+                v.insert(data);
+            }
+        }
+        Ok(())
+    }
+
+    fn merge_node_batch(
         &mut self,
-        triple: Triple,
-        data: EdgeProperties,
+        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
     ) -> Result<(), ()> {
+        for (node, data) in nodes {
+            self.merge_node(node, data)?;
+        }
+        Ok(())
+    }
+
+    fn merge_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), ()> {
         let old_edge_data_id = match self.spo_data.entry(Triple::encode_spo(&triple)) {
             std::collections::btree_map::Entry::Vacant(_) => None,
             std::collections::btree_map::Entry::Occupied(o) => Some(o.get().clone()),
@@ -66,12 +103,12 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
         Ok(())
     }
 
-    pub(super) fn handle_merge_edge_batch(
+    fn merge_edge_batch(
         &mut self,
         triples: impl Iterator<Item = (Triple, EdgeProperties)>,
     ) -> Result<(), ()> {
         for (triple, data) in triples {
-            self.handle_merge_edge(triple, data)?;
+            self.merge_edge(triple, data)?;
         }
         Ok(())
     }
