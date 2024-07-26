@@ -4,10 +4,10 @@ use ulid::Ulid;
 use crate::DecoratedTriple;
 use crate::Triple;
 use crate::TripleStoreIntoIter;
+use crate::TripleStoreIter;
 
 use super::Error;
 use super::SledTripleStore;
-
 impl<
         NodeProperties: Serialize + DeserializeOwned,
         EdgeProperties: Serialize + DeserializeOwned,
@@ -34,8 +34,15 @@ impl<
             .map(|data| bincode::deserialize(&data).map_err(|e| Error::SerializationError(e)))
             .transpose()
     }
-
-    fn iter_spo<'a>(
+}
+impl<
+        'a,
+        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+    > TripleStoreIter<'a, NodeProperties, EdgeProperties>
+    for SledTripleStore<NodeProperties, EdgeProperties>
+{
+    fn iter_spo(
         &'a self,
     ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Error>> + 'a
     {
@@ -61,7 +68,7 @@ impl<
         })
     }
 
-    fn iter_pos<'a>(
+    fn iter_pos(
         &'a self,
     ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Error>> + 'a
     {
@@ -87,7 +94,7 @@ impl<
         })
     }
 
-    fn iter_osp<'a>(
+    fn iter_osp(
         &'a self,
     ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Error>> + 'a
     {
@@ -113,7 +120,7 @@ impl<
         })
     }
 
-    fn iter_node(&self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Error>> {
+    fn iter_node(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Error>> {
         self.node_props.iter().map(|r| match r {
             Ok((k, v)) => {
                 let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
@@ -124,7 +131,7 @@ impl<
         })
     }
 
-    fn iter_edge_spo<'a>(
+    fn iter_edge_spo(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
         self.spo_data.iter().map(|r| match r {
@@ -142,7 +149,7 @@ impl<
         })
     }
 
-    fn iter_edge_pos<'a>(
+    fn iter_edge_pos(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
         self.pos_data.iter().map(|r| match r {
@@ -160,7 +167,7 @@ impl<
         })
     }
 
-    fn iter_edge_osp<'a>(
+    fn iter_edge_osp(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
         self.osp_data.iter().map(|r| match r {
@@ -180,8 +187,8 @@ impl<
 }
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Serialize + DeserializeOwned,
+        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
     > TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

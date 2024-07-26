@@ -7,6 +7,7 @@ mod key_bounds;
 
 pub use decorated::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Triple {
     pub sub: Ulid,
     pub pred: Ulid,

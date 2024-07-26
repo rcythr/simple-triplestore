@@ -39,10 +39,10 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreInsert<NodePropert
 {
     fn insert_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), Self::Error> {
         match self.node_props.entry(node) {
-            std::collections::hash_map::Entry::Occupied(mut o) => {
+            std::collections::btree_map::Entry::Occupied(mut o) => {
                 o.insert(data);
             }
-            std::collections::hash_map::Entry::Vacant(v) => {
+            std::collections::btree_map::Entry::Vacant(v) => {
                 v.insert(data);
             }
         }

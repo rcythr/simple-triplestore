@@ -14,10 +14,10 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
     ) -> Ulid {
         if let Some(old_edge_data_id) = old_edge_data_id {
             match self.edge_props.entry(old_edge_data_id.clone()) {
-                std::collections::hash_map::Entry::Occupied(mut o) => {
+                std::collections::btree_map::Entry::Occupied(mut o) => {
                     o.get_mut().merge(new_edge_data)
                 }
-                std::collections::hash_map::Entry::Vacant(v) => {
+                std::collections::btree_map::Entry::Vacant(v) => {
                     v.insert(new_edge_data);
                 }
             }
@@ -35,10 +35,10 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
     fn merge(&mut self, other: Self) {
         for (id, data) in other.node_props {
             match self.node_props.entry(id) {
-                std::collections::hash_map::Entry::Occupied(mut o) => {
+                std::collections::btree_map::Entry::Occupied(mut o) => {
                     o.get_mut().merge(data);
                 }
-                std::collections::hash_map::Entry::Vacant(v) => {
+                std::collections::btree_map::Entry::Vacant(v) => {
                     v.insert(data);
                 }
             }
@@ -46,10 +46,10 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
 
         for (id, data) in other.edge_props {
             match self.edge_props.entry(id) {
-                std::collections::hash_map::Entry::Occupied(mut o) => {
+                std::collections::btree_map::Entry::Occupied(mut o) => {
                     o.get_mut().merge(data);
                 }
-                std::collections::hash_map::Entry::Vacant(v) => {
+                std::collections::btree_map::Entry::Vacant(v) => {
                     v.insert(data);
                 }
             }
@@ -70,10 +70,10 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
 
     fn merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), ()> {
         match self.node_props.entry(node) {
-            std::collections::hash_map::Entry::Occupied(mut o) => {
+            std::collections::btree_map::Entry::Occupied(mut o) => {
                 o.get_mut().merge(data);
             }
-            std::collections::hash_map::Entry::Vacant(v) => {
+            std::collections::btree_map::Entry::Vacant(v) => {
                 v.insert(data);
             }
         }

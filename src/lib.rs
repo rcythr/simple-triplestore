@@ -44,13 +44,13 @@
 
 use ulid::Ulid;
 
-pub mod mem;
+mod mem;
 pub mod mergeable;
 pub mod query;
 pub mod triple;
 
 #[cfg(feature = "sled")]
-pub mod sled;
+mod sled;
 
 pub use crate::mem::MemTripleStore;
 pub use crate::mergeable::Mergeable;
@@ -106,7 +106,46 @@ pub trait TripleStoreRemove<NodeProperties: Clone, EdgeProperties: Clone>:
     ) -> Result<(), Self::Error>;
 }
 
-pub trait TripleStoreIntoIter<NodeProperties: Clone, EdgeProperties: Clone>:
+pub trait TripleStoreIter<'a, NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
+    TripleStoreError
+{
+    ///
+    fn iter_spo(
+        &'a self,
+    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+
+    ///
+    fn iter_pos(
+        &'a self,
+    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+
+    ///
+    fn iter_osp(
+        &'a self,
+    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+
+    ///
+    fn iter_node(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> + 'a;
+
+    ///
+    fn iter_edge_spo(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
+
+    ///
+    fn iter_edge_pos(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
+
+    ///
+    fn iter_edge_osp(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
+}
+
+pub trait TripleStoreIntoIter<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
     TripleStoreError
 {
     ///

@@ -7,8 +7,8 @@ use crate::{
 use super::SledTripleStore;
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Serialize + DeserializeOwned,
+        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
     > TripleStoreSetOps<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

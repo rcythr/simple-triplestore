@@ -14,8 +14,8 @@ mod set;
 
 /// A triple store implemented entirely in memory.
 pub struct MemTripleStore<NodeProperties, EdgeProperties> {
-    node_props: HashMap<Ulid, NodeProperties>,
-    edge_props: HashMap<Ulid, EdgeProperties>,
+    node_props: BTreeMap<Ulid, NodeProperties>,
+    edge_props: BTreeMap<Ulid, EdgeProperties>,
     spo_data: BTreeMap<[u8; 48], Ulid>,
     pos_data: BTreeMap<[u8; 48], Ulid>,
     osp_data: BTreeMap<[u8; 48], Ulid>,
@@ -24,8 +24,8 @@ pub struct MemTripleStore<NodeProperties, EdgeProperties> {
 impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties, EdgeProperties> {
     pub fn new() -> Self {
         Self {
-            node_props: HashMap::new(),
-            edge_props: HashMap::new(),
+            node_props: BTreeMap::new(),
+            edge_props: BTreeMap::new(),
             spo_data: BTreeMap::new(),
             pos_data: BTreeMap::new(),
             osp_data: BTreeMap::new(),
