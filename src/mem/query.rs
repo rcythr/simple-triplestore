@@ -1,5 +1,3 @@
-use ulid::Ulid;
-
 use crate::{Query, Triple, TripleStoreInsert};
 use crate::{TripleStoreExtend, TripleStoreQuery};
 
@@ -154,25 +152,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::S__(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.spo_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item,
-                                pred: Ulid(u128::MIN),
-                                obj: Ulid(u128::MIN),
-                            }
-                            .encode_spo(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item,
-                                pred: Ulid(u128::MAX),
-                                obj: Ulid(u128::MAX),
-                            }
-                            .encode_spo(),
-                        ),
-                    )) {
+                for sub in items {
+                    for (key, data_id) in self.spo_data.range(Triple::key_bounds_s(sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_spo(&key), data.clone())?;
                         }
@@ -183,25 +164,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::SP_(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.spo_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item.0,
-                                pred: item.1,
-                                obj: Ulid(u128::MIN),
-                            }
-                            .encode_spo(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item.0,
-                                pred: item.1,
-                                obj: Ulid(u128::MAX),
-                            }
-                            .encode_spo(),
-                        ),
-                    )) {
+                for (sub, pred) in items {
+                    for (key, data_id) in self.spo_data.range(Triple::key_bounds_sp(sub, pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_spo(&key), data.clone())?;
                         }
@@ -212,25 +176,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::S_O(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.osp_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item.0,
-                                pred: Ulid(u128::MIN),
-                                obj: item.1,
-                            }
-                            .encode_osp(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: item.0,
-                                pred: Ulid(u128::MAX),
-                                obj: item.1,
-                            }
-                            .encode_osp(),
-                        ),
-                    )) {
+                for (sub, obj) in items {
+                    for (key, data_id) in self.osp_data.range(Triple::key_bounds_os(obj, sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_osp(key), data.clone())?;
                         }
@@ -241,25 +188,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::_P_(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.pos_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MIN),
-                                pred: item,
-                                obj: Ulid(u128::MIN),
-                            }
-                            .encode_pos(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MAX),
-                                pred: item,
-                                obj: Ulid(u128::MAX),
-                            }
-                            .encode_pos(),
-                        ),
-                    )) {
+                for pred in items {
+                    for (key, data_id) in self.pos_data.range(Triple::key_bounds_p(pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_pos(key), data.clone())?;
                         }
@@ -270,25 +200,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::_PO(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.pos_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MIN),
-                                pred: item.0,
-                                obj: item.1,
-                            }
-                            .encode_pos(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MAX),
-                                pred: item.0,
-                                obj: item.1,
-                            }
-                            .encode_pos(),
-                        ),
-                    )) {
+                for (pred, obj) in items {
+                    for (key, data_id) in self.pos_data.range(Triple::key_bounds_po(pred, obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_pos(key), data.clone())?;
                         }
@@ -299,25 +212,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
 
             Query::__O(items) => {
                 let mut result = MemTripleStore::new();
-                for item in items {
-                    for (key, data_id) in self.osp_data.range((
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MIN),
-                                pred: Ulid(u128::MIN),
-                                obj: item,
-                            }
-                            .encode_osp(),
-                        ),
-                        std::ops::Bound::Included(
-                            Triple {
-                                sub: Ulid(u128::MAX),
-                                pred: Ulid(u128::MAX),
-                                obj: item,
-                            }
-                            .encode_osp(),
-                        ),
-                    )) {
+                for obj in items {
+                    for (key, data_id) in self.osp_data.range(Triple::key_bounds_o(obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(Triple::decode_osp(key), data.clone())?;
                         }

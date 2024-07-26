@@ -1,10 +1,11 @@
 use ulid::Ulid;
 
-mod decorated;
-pub use decorated::*;
-
 mod decode;
+mod decorated;
 mod encode;
+mod key_bounds;
+
+pub use decorated::*;
 
 pub struct Triple {
     pub sub: Ulid,
