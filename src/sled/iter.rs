@@ -192,6 +192,36 @@ impl<
     > TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
+    fn into_iters(
+        self,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    ) {
+        let node_iter = self.node_props.into_iter().map(|r| match r {
+            Ok((k, v)) => {
+                let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                let v = bincode::deserialize(&v).map_err(|e| Error::SerializationError(e))?;
+                Ok((k, v))
+            }
+            Err(e) => Err(Error::SledError(e)),
+        });
+        let edge_iter = self.spo_data.into_iter().map(move |r| match r {
+            Ok((k, v)) => {
+                let triple =
+                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
+
+                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
+                    Ok((triple, pred_data))
+                } else {
+                    Err(Error::MissingPropertyData)
+                }
+            }
+            Err(e) => Err(Error::SledError(e)),
+        });
+        (node_iter, edge_iter)
+    }
+
     fn into_iter_spo(
         self,
     ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>>

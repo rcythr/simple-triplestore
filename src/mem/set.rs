@@ -1,16 +1,42 @@
-use crate::{Triple, TripleStoreExtend, TripleStoreInsert, TripleStoreSetOps};
+use crate::{
+    Triple, TripleStoreExtend, TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter,
+    TripleStoreSetOps,
+};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreSetOps<NodeProperties, EdgeProperties>
+impl<NodeProperties: PartialEq + Clone, EdgeProperties: PartialEq + Clone>
+    TripleStoreSetOps<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type SetOpsResult = MemTripleStore<NodeProperties, EdgeProperties>;
 
-    fn union(self, other: Self) -> Result<Self::SetOpsResult, Self::Error> {
+    fn union(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties>,
+    ) -> Result<Self::SetOpsResult, Self::Error> {
         let mut result = MemTripleStore::new();
-        result.extend(self)?;
-        result.extend(other)?;
+
+        let (self_node_iter, self_edge_iter) = self.into_iters();
+        for r in self_node_iter {
+            let (id, props) = r?;
+            result.insert_node(id, props)?;
+        }
+        for r in self_edge_iter {
+            let (triple, props) = r?;
+            result.insert_edge(triple, props)?;
+        }
+
+        let (other_node_iter, other_edge_iter) = other.into_iters();
+        for r in other_node_iter {
+            let (id, props) = r.map_err(|_| ())?; // TOOD: Replace mem::Error with a real error so we can capture this.
+            result.insert_node(id, props)?;
+        }
+        for r in other_edge_iter {
+            let (triple, props) = r.map_err(|_| ())?;
+            result.insert_edge(triple, props)?;
+        }
+
         Ok(result)
     }
 

@@ -113,3 +113,54 @@ impl<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{MemTripleStore, Mergeable};
+
+    #[derive(Clone, PartialEq, Debug)]
+    struct TestMergeable {
+        a: Option<String>,
+        b: Option<String>,
+    }
+
+    impl Mergeable for TestMergeable {
+        fn merge(&mut self, other: Self) {
+            other.a.map(|a| {
+                self.a = Some(a);
+            });
+            other.b.map(|b| {
+                self.b = Some(b);
+            });
+        }
+    }
+
+    struct Config {}
+
+    impl Default for Config {
+        fn default() -> Self {
+            Self {}
+        }
+    }
+
+    fn build_graph(config: Config) -> MemTripleStore<TestMergeable, TestMergeable> {
+        let mut result = MemTripleStore::new();
+
+        result
+    }
+
+    #[test]
+    fn test_merge() {}
+
+    #[test]
+    fn test_merge_node() {}
+
+    #[test]
+    fn test_merge_node_batch() {}
+
+    #[test]
+    fn test_merge_edge() {}
+
+    #[test]
+    fn test_merge_edge_batch() {}
+}

@@ -1,7 +1,5 @@
-use crate::{
-    DecoratedTriple, Mergeable, Triple, TripleStoreError, TripleStoreIntoIter, TripleStoreMerge,
-};
-use std::collections::{BTreeMap, HashMap};
+use crate::TripleStoreError;
+use std::collections::BTreeMap;
 use ulid::Ulid;
 
 mod extend;
@@ -12,7 +10,7 @@ mod query;
 mod remove;
 mod set;
 
-/// A triple store implemented entirely in memory.
+/// A triple store implemented entirely in memory using [std::collections::BTreeMap].
 pub struct MemTripleStore<NodeProperties, EdgeProperties> {
     node_props: BTreeMap<Ulid, NodeProperties>,
     edge_props: BTreeMap<Ulid, EdgeProperties>,

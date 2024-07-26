@@ -24,7 +24,7 @@
 //! A [triplestore](https://en.wikipedia.org/wiki/Triplestore) which can be used as a flexible graph database with support for custom node and edge properties.
 //!
 //! ## Data Model
-//! Each node and edge is assigned an [Ulid][ulid::Ulid]. Property data is then associated with this id using key-value storage.
+//! Each node and edge is assigned an [Ulid]. Property data is then associated with this id using key-value storage.
 //!
 //! Graph relationships are stored three times as `(Ulid, Ulid, Ulid) -> Ulid` with the following key orders:
 //!   * Subject, Predicate, Object
@@ -37,7 +37,7 @@
 //!
 //! ## Supported Key-Value Backends
 //!
-//!   * [Memory][MemTripleStore] ( via std::collections::HashMap and std::collections::BTreeMap )
+//!   * [Memory][MemTripleStore] ( via [std::collections::BTreeMap] )
 //!
 //!   * [Sled][SledTripleStore]
 //!
@@ -45,9 +45,9 @@
 use ulid::Ulid;
 
 mod mem;
-pub mod mergeable;
-pub mod query;
-pub mod triple;
+mod mergeable;
+mod query;
+mod triple;
 
 #[cfg(feature = "sled")]
 mod sled;
@@ -148,6 +148,14 @@ pub trait TripleStoreIter<'a, NodeProperties: Clone + PartialEq, EdgeProperties:
 pub trait TripleStoreIntoIter<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
     TripleStoreError
 {
+    //
+    fn into_iters(
+        self,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    );
+
     ///
     fn into_iter_spo(
         self,
@@ -192,14 +200,17 @@ pub trait TripleStoreQuery<NodeProperties: Clone, EdgeProperties: Clone>: Triple
 }
 
 ///
-pub trait TripleStoreSetOps<NodeProperties: Clone, EdgeProperties: Clone>:
+pub trait TripleStoreSetOps<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
     TripleStoreError
 {
     ///
     type SetOpsResult;
 
     ///
-    fn union(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+    fn union(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties>,
+    ) -> Result<Self::SetOpsResult, Self::Error>;
 
     ///
     fn intersection(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;

@@ -115,6 +115,23 @@ impl<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>
     TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
+    fn into_iters(
+        self,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    ) {
+        let node_iter = self.node_props.into_iter().map(|o| Ok(o));
+        let edge_iter =
+            self.spo_data
+                .into_iter()
+                .filter_map(move |(k, v)| match self.edge_props.get(&v) {
+                    Some(v) => Some(Ok((Triple::decode_spo(&k), v.clone()))),
+                    None => None,
+                });
+        (node_iter, edge_iter)
+    }
+
     fn into_iter_spo(
         self,
     ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> {

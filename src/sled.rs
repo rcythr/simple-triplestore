@@ -17,6 +17,7 @@ pub enum Error {
     SerializationError(bincode::Error),
     KeySizeError,
     MissingPropertyData,
+    SetOpsFailure,
 }
 
 /// A triplestore which is backed by a Sled database.
