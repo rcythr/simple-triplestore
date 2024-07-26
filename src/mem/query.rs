@@ -1,13 +1,16 @@
+use crate::TripleStoreQuery;
 use crate::{Query, Triple, TripleStoreInsert};
-use crate::{TripleStoreExtend, TripleStoreQuery};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties, EdgeProperties> {
-    pub(super) fn handle_query(
+impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreQuery<NodeProperties, EdgeProperties>
+    for MemTripleStore<NodeProperties, EdgeProperties>
+{
+    type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    fn query(
         &mut self,
         query: Query,
-    ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, ()> {
+    ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
         Ok(match query {
             Query::NodeProperty(nodes) => {
                 let mut result = MemTripleStore::new();
@@ -114,17 +117,5 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                 result
             }
         })
-    }
-}
-
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreQuery<NodeProperties, EdgeProperties>
-    for MemTripleStore<NodeProperties, EdgeProperties>
-{
-    type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
-    fn query(
-        &mut self,
-        query: Query,
-    ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
-        self.handle_query(query)
     }
 }

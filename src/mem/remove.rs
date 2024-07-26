@@ -66,8 +66,12 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
                 },
             )
     }
+}
 
-    pub(super) fn handle_remove_node(&mut self, node: &Ulid) -> Result<(), ()> {
+impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreRemove<NodeProperties, EdgeProperties>
+    for MemTripleStore<NodeProperties, EdgeProperties>
+{
+    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error> {
         // Find all uses of this node in the edges.
         let (forward_triples, forward_edge_data_ids) = self.get_spo_edge_range(node);
         let (backward_triples, backward_edge_data_ids) = self.get_osp_edge_range(node);
@@ -84,7 +88,7 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
         }
 
         // Remove the forward and backward edges
-        self.handle_remove_edge_batch(
+        self.remove_edge_batch(
             forward_triples
                 .into_iter()
                 .chain(backward_triples.into_iter()),
@@ -93,17 +97,14 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
         Ok(())
     }
 
-    pub(super) fn handle_remove_node_batch(
-        &mut self,
-        nodes: impl Iterator<Item = Ulid>,
-    ) -> Result<(), ()> {
+    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error> {
         for node in nodes {
-            self.handle_remove_node(&node)?;
+            self.remove_node(&node)?;
         }
         Ok(())
     }
 
-    pub(super) fn handle_remove_edge(&mut self, triple: Triple) -> Result<(), ()> {
+    fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error> {
         if let std::collections::btree_map::Entry::Occupied(spo_data_entry) =
             self.spo_data.entry(triple.encode_spo())
         {
@@ -118,36 +119,13 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
         Ok(())
     }
 
-    pub(super) fn handle_remove_edge_batch(
-        &mut self,
-        triples: impl Iterator<Item = Triple>,
-    ) -> Result<(), ()> {
-        for triple in triples {
-            self.handle_remove_edge(triple)?;
-        }
-        Ok(())
-    }
-}
-
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreRemove<NodeProperties, EdgeProperties>
-    for MemTripleStore<NodeProperties, EdgeProperties>
-{
-    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error> {
-        self.handle_remove_node(node)
-    }
-
-    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error> {
-        self.handle_remove_node_batch(nodes)
-    }
-
-    fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error> {
-        self.handle_remove_edge(triple)
-    }
-
     fn remove_edge_batch(
         &mut self,
         triples: impl Iterator<Item = Triple>,
     ) -> Result<(), Self::Error> {
-        self.handle_remove_edge_batch(triples)
+        for triple in triples {
+            self.remove_edge(triple)?;
+        }
+        Ok(())
     }
 }
