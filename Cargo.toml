@@ -1,8 +1,13 @@
 [package]
 name = "simple-triplestore"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+authors = ["rcythr"]
 license = "Apache-2.0"
+description = "A simple graph database for storing triples with support for custom node and edge properties."
+repository = "https://github.com/rcythr/simple_triplestore"
+keywords = ["database", "graph", "triple"]
+categories = ["data-structures", "database-implementations"]
 
 [dependencies]
 bincode = { version = "1.3.3", optional=true }
@@ -11,5 +16,4 @@ sled = { version ="0.34.7", optional=true }
 ulid = { version = "1.1.3" }
 
 [features]
-default = ["sled"]
 sled = ["dep:sled", "dep:serde", "ulid/serde", "dep:bincode"]
