@@ -10,6 +10,7 @@ mod iter;
 mod merge;
 mod query;
 mod remove;
+mod set;
 
 /// A triple store implemented entirely in memory.
 pub struct MemTripleStore<NodeProperties, EdgeProperties> {

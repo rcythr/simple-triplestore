@@ -1,6 +1,5 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::Transactional;
-use ulid::Ulid;
 
 use crate::TripleStoreExtend;
 

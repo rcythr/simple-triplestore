@@ -10,6 +10,7 @@ mod iter;
 mod merge;
 mod query;
 mod remove;
+mod set;
 
 pub enum Error {
     SledError(sled::Error),

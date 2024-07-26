@@ -64,42 +64,6 @@ pub trait TripleStoreError {
 }
 
 ///
-pub trait TripleStoreExtend<NodeProperties: Clone, EdgeProperties: Clone>:
-    TripleStoreError
-{
-    /// Consume `other` and add its nodes and edges to this Triplestore.
-    ///
-    /// Existing property data will be replaced with property data found in `other`.
-    fn extend(&mut self, other: Self) -> Result<(), Self::Error>;
-}
-
-///
-pub trait TripleStoreQuery<NodeProperties: Clone, EdgeProperties: Clone>: TripleStoreError {
-    type QueryResult;
-    fn query(&mut self, query: Query) -> Result<Self::QueryResult, Self::Error>;
-}
-
-///
-pub trait TripleStoreRemove<NodeProperties: Clone, EdgeProperties: Clone>:
-    TripleStoreError
-{
-    ///
-    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error>;
-
-    ///
-    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error>;
-
-    ///
-    fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
-
-    ///
-    fn remove_edge_batch(
-        &mut self,
-        triples: impl Iterator<Item = Triple>,
-    ) -> Result<(), Self::Error>;
-}
-
-///
 pub trait TripleStoreInsert<NodeProperties: Clone, EdgeProperties: Clone>:
     TripleStoreError
 {
@@ -119,6 +83,26 @@ pub trait TripleStoreInsert<NodeProperties: Clone, EdgeProperties: Clone>:
     fn insert_edge_batch(
         &mut self,
         triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+    ) -> Result<(), Self::Error>;
+}
+
+///
+pub trait TripleStoreRemove<NodeProperties: Clone, EdgeProperties: Clone>:
+    TripleStoreError
+{
+    ///
+    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error>;
+
+    ///
+    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error>;
+
+    ///
+    fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
+
+    ///
+    fn remove_edge_batch(
+        &mut self,
+        triples: impl Iterator<Item = Triple>,
     ) -> Result<(), Self::Error>;
 }
 
@@ -157,6 +141,42 @@ pub trait TripleStoreIntoIter<NodeProperties: Clone, EdgeProperties: Clone>:
     fn into_iter_edge_osp(
         self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
+}
+
+///
+pub trait TripleStoreQuery<NodeProperties: Clone, EdgeProperties: Clone>: TripleStoreError {
+    ///
+    type QueryResult;
+
+    ///
+    fn query(&mut self, query: Query) -> Result<Self::QueryResult, Self::Error>;
+}
+
+///
+pub trait TripleStoreSetOps<NodeProperties: Clone, EdgeProperties: Clone>:
+    TripleStoreError
+{
+    ///
+    type SetOpsResult;
+
+    ///
+    fn union(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+
+    ///
+    fn intersection(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+
+    ///
+    fn difference(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+}
+
+///
+pub trait TripleStoreExtend<NodeProperties: Clone, EdgeProperties: Clone>:
+    TripleStoreError
+{
+    /// Consume `other` and add its nodes and edges to this Triplestore.
+    ///
+    /// Existing property data will be replaced with property data found in `other`.
+    fn extend(&mut self, other: Self) -> Result<(), Self::Error>;
 }
 
 ///
