@@ -15,12 +15,49 @@ impl<
         match query {
             crate::Query::NodeProperty(_) => todo!(),
             crate::Query::EdgeProperty(_) => todo!(),
-            crate::Query::__O(_) => todo!(),
-            crate::Query::S__(_) => todo!(),
-            crate::Query::_P_(_) => todo!(),
-            crate::Query::_PO(_) => todo!(),
-            crate::Query::S_O(_) => todo!(),
-            crate::Query::SP_(_) => todo!(),
+            crate::Query::O(_) => todo!(),
+            crate::Query::S(_) => todo!(),
+            crate::Query::P(_) => todo!(),
+            crate::Query::PO(_) => todo!(),
+            crate::Query::SO(_) => todo!(),
+            crate::Query::SP(_) => todo!(),
         }
+    }
+}
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_query_node_props() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_edge_props() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_s() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_sp() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_p() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_po() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_o() {
+        todo!()
     }
 }

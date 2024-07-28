@@ -46,7 +46,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::S__(items) => {
+            Query::S(items) => {
                 let mut result = MemTripleStore::new();
                 for sub in items {
                     for (key, data_id) in self.spo_data.range(Triple::key_bounds_1(sub)) {
@@ -58,7 +58,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::SP_(items) => {
+            Query::SP(items) => {
                 let mut result = MemTripleStore::new();
                 for (sub, pred) in items {
                     for (key, data_id) in self.spo_data.range(Triple::key_bounds_2(sub, pred)) {
@@ -70,7 +70,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::S_O(items) => {
+            Query::SO(items) => {
                 let mut result = MemTripleStore::new();
                 for (sub, obj) in items {
                     for (key, data_id) in self.osp_data.range(Triple::key_bounds_2(obj, sub)) {
@@ -82,7 +82,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::_P_(items) => {
+            Query::P(items) => {
                 let mut result = MemTripleStore::new();
                 for pred in items {
                     for (key, data_id) in self.pos_data.range(Triple::key_bounds_1(pred)) {
@@ -94,7 +94,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::_PO(items) => {
+            Query::PO(items) => {
                 let mut result = MemTripleStore::new();
                 for (pred, obj) in items {
                     for (key, data_id) in self.pos_data.range(Triple::key_bounds_2(pred, obj)) {
@@ -106,7 +106,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::__O(items) => {
+            Query::O(items) => {
                 let mut result = MemTripleStore::new();
                 for obj in items {
                     for (key, data_id) in self.osp_data.range(Triple::key_bounds_1(obj)) {
@@ -118,5 +118,43 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_query_node_props() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_edge_props() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_s() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_sp() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_p() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_po() {
+        todo!()
+    }
+
+    #[test]
+    fn test_query_o() {
+        todo!()
     }
 }

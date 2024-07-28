@@ -107,3 +107,26 @@ impl<
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_insert_node() {
+        todo!()
+    }
+
+    #[test]
+    fn test_insert_node_batch() {
+        todo!()
+    }
+
+    #[test]
+    fn test_insert_edge() {
+        todo!()
+    }
+
+    #[test]
+    fn test_insert_edge_batch() {
+        todo!()
+    }
+}

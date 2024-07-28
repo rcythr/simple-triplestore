@@ -366,3 +366,80 @@ impl<
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_iter_spo() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_pos() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_osp() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_node() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_edge_spo() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_edge_pos() {
+        todo!()
+    }
+
+    #[test]
+    fn test_iter_edge_osp() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iters() {
+        todo!()
+    }
+
+    fn test_into_iter_spo() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_pos() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_osp() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_node() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_edge_spo() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_edge_pos() {
+        todo!()
+    }
+
+    #[test]
+    fn test_into_iter_edge_osp() {
+        todo!()
+    }
+}

@@ -278,8 +278,6 @@ mod test {
             ..initial_graph.clone()
         });
 
-        dbg!(graph_1.clone());
-
         let graph_2 = build_graph(Config {
             node_2_props: TestMergeable {
                 a: Some("foo".into()),
@@ -291,8 +289,6 @@ mod test {
             },
             ..initial_graph.clone()
         });
-
-        dbg!(graph_2.clone());
 
         let expected_graph_1_2 = build_graph(Config {
             node_2_props: TestMergeable {
@@ -329,14 +325,153 @@ mod test {
     }
 
     #[test]
-    fn test_merge_node() {}
+    fn test_merge_node() {
+        let initial_graph = Config::default();
+
+        let mut graph_1 = build_graph(Config {
+            node_2_props: TestMergeable {
+                a: Some("bar".into()),
+                b: Some("bar".into()),
+            },
+            ..initial_graph.clone()
+        });
+
+        graph_1
+            .merge_node(
+                initial_graph.node_1,
+                TestMergeable {
+                    a: Some("baz".into()),
+                    b: None,
+                },
+            )
+            .expect("ok");
+
+        graph_1
+            .merge_node(
+                initial_graph.node_2,
+                TestMergeable {
+                    a: Some("baz".into()),
+                    b: None,
+                },
+            )
+            .expect("ok");
+
+        let expected_graph = build_graph(Config {
+            node_1_props: TestMergeable {
+                a: Some("baz".into()),
+                b: None,
+            },
+            node_2_props: TestMergeable {
+                a: Some("baz".into()),
+                b: Some("bar".into()),
+            },
+            ..initial_graph.clone()
+        });
+
+        assert_eq!(graph_1, expected_graph);
+    }
 
     #[test]
-    fn test_merge_node_batch() {}
+    fn test_merge_node_batch() {
+        todo!()
+    }
 
     #[test]
-    fn test_merge_edge() {}
+    fn test_merge_edge() {
+        let mut graph = MemTripleStore::new();
+
+        let mut gen = ulid::Generator::new();
+        let node_1 = gen.generate().unwrap();
+        let node_2 = gen.generate().unwrap();
+        let node_3 = gen.generate().unwrap();
+        let edge = gen.generate().unwrap();
+
+        // Setup the Initial Graph
+        graph
+            .insert_node(node_1, TestMergeable::default())
+            .expect("ok");
+        graph
+            .insert_node(node_2, TestMergeable::default())
+            .expect("ok");
+        graph
+            .insert_node(node_3, TestMergeable::default())
+            .expect("ok");
+        graph
+            .insert_edge(
+                Triple {
+                    sub: node_1,
+                    pred: edge,
+                    obj: node_2,
+                },
+                TestMergeable {
+                    a: Some("foo".into()),
+                    b: None,
+                },
+            )
+            .expect("ok");
+
+        // The final graph contains the two new edges with proper merged data.
+        let mut expected_graph = graph.clone();
+        expected_graph
+            .insert_edge(
+                Triple {
+                    sub: node_1,
+                    pred: edge,
+                    obj: node_2,
+                },
+                TestMergeable {
+                    a: Some("foo".into()),
+                    b: Some("bar".into()),
+                },
+            )
+            .expect("ok");
+        expected_graph
+            .insert_edge(
+                Triple {
+                    sub: node_2,
+                    pred: edge,
+                    obj: node_3,
+                },
+                TestMergeable {
+                    a: Some("baz".into()),
+                    b: Some("baz".into()),
+                },
+            )
+            .expect("ok");
+
+        // Perform the merge_edge
+        graph
+            .merge_edge(
+                Triple {
+                    sub: node_1,
+                    pred: edge,
+                    obj: node_2,
+                },
+                TestMergeable {
+                    a: None,
+                    b: Some("bar".into()),
+                },
+            )
+            .expect("ok");
+        graph
+            .merge_edge(
+                Triple {
+                    sub: node_2,
+                    pred: edge,
+                    obj: node_3,
+                },
+                TestMergeable {
+                    a: Some("baz".into()),
+                    b: Some("baz".into()),
+                },
+            )
+            .expect("ok");
+
+        assert_eq!(graph, expected_graph);
+    }
 
     #[test]
-    fn test_merge_edge_batch() {}
+    fn test_merge_edge_batch() {
+        todo!()
+    }
 }

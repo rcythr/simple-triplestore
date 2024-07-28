@@ -34,3 +34,26 @@ impl<
         todo!()
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_remove_node() {
+        todo!()
+    }
+
+    #[test]
+    fn test_remove_node_batch() {
+        todo!()
+    }
+
+    #[test]
+    fn test_remove_edge() {
+        todo!()
+    }
+
+    #[test]
+    fn test_remove_edge_batch() {
+        todo!()
+    }
+}

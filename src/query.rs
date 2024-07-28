@@ -5,10 +5,10 @@ use ulid::Ulid;
 pub enum Query {
     NodeProperty(HashSet<Ulid>),
     EdgeProperty(HashSet<(Ulid, Ulid, Ulid)>),
-    __O(HashSet<Ulid>),
-    S__(HashSet<Ulid>),
-    _P_(HashSet<Ulid>),
-    _PO(HashSet<(Ulid, Ulid)>),
-    S_O(HashSet<(Ulid, Ulid)>),
-    SP_(HashSet<(Ulid, Ulid)>),
+    O(HashSet<Ulid>),
+    S(HashSet<Ulid>),
+    P(HashSet<Ulid>),
+    PO(HashSet<(Ulid, Ulid)>),
+    SO(HashSet<(Ulid, Ulid)>),
+    SP(HashSet<(Ulid, Ulid)>),
 }

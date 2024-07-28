@@ -130,3 +130,22 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_union() {
+        todo!()
+    }
+
+    #[test]
+    fn test_intersection() {
+        todo!()
+    }
+
+    #[test]
+    fn test_difference() {
+        todo!()
+    }
+}
