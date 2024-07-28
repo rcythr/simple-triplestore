@@ -1,5 +1,5 @@
 pub use crate::{
-    DecoratedTriple, MemTripleStore, Triple, TripleStoreError, TripleStoreExtend,
+    DecoratedTriple, MemTripleStore, Query, Triple, TripleStoreError, TripleStoreExtend,
     TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter, TripleStoreMerge, TripleStoreQuery,
     TripleStoreRemove, TripleStoreSetOps,
 };

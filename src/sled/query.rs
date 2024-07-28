@@ -11,7 +11,7 @@ impl<
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
-    fn query(&mut self, query: crate::Query) -> Result<Self::QueryResult, Self::Error> {
+    fn query(&self, query: crate::Query) -> Result<Self::QueryResult, Self::Error> {
         match query {
             crate::Query::NodeProperty(_) => todo!(),
             crate::Query::EdgeProperty(_) => todo!(),

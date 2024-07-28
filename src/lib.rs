@@ -202,7 +202,7 @@ pub trait TripleStoreQuery<NodeProperties: PropertiesType, EdgeProperties: Prope
     type QueryResult;
 
     ///
-    fn query(&mut self, query: Query) -> Result<Self::QueryResult, Self::Error>;
+    fn query(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;
 }
 
 ///
