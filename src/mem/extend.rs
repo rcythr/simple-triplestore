@@ -6,25 +6,65 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreExtend<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn extend(&mut self, other: Self) -> Result<(), ()> {
+    fn extend(&mut self, mut other: Self) -> Result<(), ()> {
         for (id, data) in other.node_props {
-            self.node_props.insert(id, data);
+            match self.node_props.entry(id) {
+                std::collections::btree_map::Entry::Occupied(mut o) => {
+                    *o.get_mut() = data;
+                }
+                std::collections::btree_map::Entry::Vacant(v) => {
+                    v.insert(data);
+                }
+            }
         }
 
-        for (id, data) in other.edge_props {
-            self.edge_props.insert(id, data);
-        }
+        for (id, other_edge_props_id) in other.spo_data {
+            match self.spo_data.entry(id) {
+                std::collections::btree_map::Entry::Vacant(self_spo_data_v) => {
+                    // We don't have this edge already.
+                    // Get the content from other.edge_props
+                    other
+                        .edge_props
+                        .remove(&other_edge_props_id)
+                        .map(|other_edge_props| {
+                            self_spo_data_v.insert(other_edge_props_id);
+                            self.edge_props
+                                .insert(other_edge_props_id, other_edge_props);
+                        });
+                }
 
-        for (id, data) in other.spo_data {
-            self.spo_data.insert(id, data);
-        }
+                std::collections::btree_map::Entry::Occupied(self_spo_data_o) => {
+                    let self_edge_props_id = self_spo_data_o.get();
 
-        for (id, data) in other.pos_data {
-            self.pos_data.insert(id, data);
-        }
+                    let self_edge_data = self.edge_props.entry(*self_edge_props_id);
+                    let other_edge_data = other.edge_props.entry(other_edge_props_id);
 
-        for (id, data) in other.osp_data {
-            self.osp_data.insert(id, data);
+                    // Merge our edge props using the existing id.
+
+                    match (self_edge_data, other_edge_data) {
+                        (
+                            std::collections::btree_map::Entry::Vacant(_),
+                            std::collections::btree_map::Entry::Vacant(_),
+                        ) => {}
+                        (
+                            std::collections::btree_map::Entry::Vacant(v),
+                            std::collections::btree_map::Entry::Occupied(o),
+                        ) => {
+                            v.insert(o.remove());
+                        }
+                        (
+                            std::collections::btree_map::Entry::Occupied(_),
+                            std::collections::btree_map::Entry::Vacant(_),
+                        ) => {
+                            // Nothing to do.
+                        }
+                        (
+                            std::collections::btree_map::Entry::Occupied(mut self_o),
+                            std::collections::btree_map::Entry::Occupied(other_o),
+                        ) => *self_o.get_mut() = other_o.remove(),
+                    }
+                }
+            };
         }
 
         Ok(())
