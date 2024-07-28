@@ -1,8 +1,5 @@
-use ulid::Ulid;
-
-use crate::{DecoratedTriple, MemTripleStore, Triple, TripleStoreError, TripleStoreIntoIter};
+use crate::{prelude::*, PropertiesType};
 use serde::{de::DeserializeOwned, Serialize};
-use sled::Transactional;
 
 mod extend;
 mod insert;
@@ -22,7 +19,7 @@ pub enum Error {
 
 /// A triplestore which is backed by a Sled database.
 pub struct SledTripleStore<
-    NodeProperties: Serialize + DeserializeOwned,
+    NodeProperties: PropertiesType + Serialize + DeserializeOwned,
     EdgeProperties: Serialize + DeserializeOwned,
 > {
     _phantom: std::marker::PhantomData<(NodeProperties, EdgeProperties)>,
@@ -34,8 +31,8 @@ pub struct SledTripleStore<
 }
 
 impl<
-        NodeProperties: Serialize + DeserializeOwned,
-        EdgeProperties: Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > SledTripleStore<NodeProperties, EdgeProperties>
 {
     pub fn new(db: &sled::Db) -> Result<Self, sled::Error> {
@@ -57,8 +54,8 @@ impl<
 }
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > TripleStoreError for SledTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = Error;

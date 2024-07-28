@@ -1,14 +1,14 @@
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    MemTripleStore, TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter, TripleStoreSetOps,
+    MemTripleStore, PropertiesType, TripleStoreInsert, TripleStoreIntoIter, TripleStoreSetOps,
 };
 
 use super::SledTripleStore;
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
-        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned + PartialEq,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned + PartialEq,
     > TripleStoreSetOps<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
@@ -51,11 +51,11 @@ impl<
         Ok(result)
     }
 
-    fn intersection(self, other: Self) -> Result<Self::SetOpsResult, Self::Error> {
+    fn intersection(self, _other: Self) -> Result<Self::SetOpsResult, Self::Error> {
         todo!()
     }
 
-    fn difference(self, other: Self) -> Result<Self::SetOpsResult, Self::Error> {
+    fn difference(self, _other: Self) -> Result<Self::SetOpsResult, Self::Error> {
         todo!()
     }
 }

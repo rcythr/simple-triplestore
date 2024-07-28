@@ -2,6 +2,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use ulid::Ulid;
 
 use crate::DecoratedTriple;
+use crate::PropertiesType;
 use crate::Triple;
 use crate::TripleStoreIntoIter;
 use crate::TripleStoreIter;
@@ -9,8 +10,8 @@ use crate::TripleStoreIter;
 use super::Error;
 use super::SledTripleStore;
 impl<
-        NodeProperties: Serialize + DeserializeOwned,
-        EdgeProperties: Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > SledTripleStore<NodeProperties, EdgeProperties>
 {
     fn get_node_data_internal(&self, id: &Vec<u8>) -> Result<Option<NodeProperties>, Error> {
@@ -37,8 +38,8 @@ impl<
 }
 impl<
         'a,
-        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
-        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > TripleStoreIter<'a, NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
@@ -187,8 +188,8 @@ impl<
 }
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
-        EdgeProperties: Clone + Serialize + DeserializeOwned + PartialEq,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

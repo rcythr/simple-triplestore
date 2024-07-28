@@ -13,10 +13,3 @@ pub struct Triple {
     pub pred: Ulid,
     pub obj: Ulid,
 }
-
-#[cfg(feature = "rdf")]
-pub struct RdfTriple {
-    pub sub: String,
-    pub pred: String,
-    pub obj: String,
-}

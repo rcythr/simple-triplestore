@@ -1,10 +1,12 @@
 use ulid::Ulid;
 
-use crate::{Triple, TripleStoreRemove};
+use crate::{PropertiesType, Triple, TripleStoreRemove};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties, EdgeProperties> {
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    MemTripleStore<NodeProperties, EdgeProperties>
+{
     // Gets the set of outgoing edges from a given node.
     fn get_spo_edge_range(&self, node: &Ulid) -> (Vec<Triple>, Vec<Ulid>) {
         self.spo_data
@@ -68,7 +70,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
     }
 }
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreRemove<NodeProperties, EdgeProperties>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStoreRemove<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error> {

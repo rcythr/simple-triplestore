@@ -1,8 +1,9 @@
-use crate::TripleStoreExtend;
+use crate::{PropertiesType, TripleStoreExtend};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreExtend<NodeProperties, EdgeProperties>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStoreExtend<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn extend(&mut self, other: Self) -> Result<(), ()> {
@@ -34,7 +35,8 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreExtend<NodePropert
 mod test {
     use ulid::Ulid;
 
-    use crate::{MemTripleStore, Triple, TripleStoreExtend, TripleStoreInsert, TripleStoreIter};
+    use crate::prelude::*;
+    use crate::{MemTripleStore, Triple};
 
     #[test]
     fn test_extend() {

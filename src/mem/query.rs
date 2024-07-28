@@ -1,9 +1,10 @@
-use crate::TripleStoreQuery;
+use crate::{PropertiesType, TripleStoreQuery};
 use crate::{Query, Triple, TripleStoreInsert};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreQuery<NodeProperties, EdgeProperties>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStoreQuery<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;

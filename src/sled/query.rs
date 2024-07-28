@@ -1,12 +1,12 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{MemTripleStore, TripleStoreQuery};
+use crate::{MemTripleStore, PropertiesType, TripleStoreQuery};
 
 use super::SledTripleStore;
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > TripleStoreQuery<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

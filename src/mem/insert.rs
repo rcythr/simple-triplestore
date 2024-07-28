@@ -1,10 +1,12 @@
 use ulid::Ulid;
 
-use crate::{Triple, TripleStoreInsert};
+use crate::{PropertiesType, Triple, TripleStoreInsert};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties, EdgeProperties> {
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    MemTripleStore<NodeProperties, EdgeProperties>
+{
     pub(super) fn insert_edge_data_internal(&mut self, triple: &Triple, new_edge_data_id: &Ulid) {
         self.spo_data
             .insert(Triple::encode_spo(&triple), new_edge_data_id.clone());
@@ -21,20 +23,20 @@ impl<NodeProperties: Clone, EdgeProperties: Clone> MemTripleStore<NodeProperties
         old_edge_data_id: &Option<Ulid>,
         new_edge_data: EdgeProperties,
     ) -> Ulid {
-        let new_edge_data_id = Ulid::new();
-
-        self.edge_props.insert(new_edge_data_id, new_edge_data);
-
         // Clean up the old data.
         if let Some(old_edge_data_id) = old_edge_data_id {
             self.edge_props.remove(&old_edge_data_id);
         }
 
+        // Insert the new data with a fresh Ulid.
+        let new_edge_data_id = Ulid::new();
+        self.edge_props.insert(new_edge_data_id, new_edge_data);
         new_edge_data_id
     }
 }
 
-impl<NodeProperties: Clone, EdgeProperties: Clone> TripleStoreInsert<NodeProperties, EdgeProperties>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStoreInsert<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn insert_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), Self::Error> {

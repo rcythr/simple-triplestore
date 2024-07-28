@@ -46,6 +46,7 @@ use ulid::Ulid;
 
 mod mem;
 mod mergeable;
+pub mod prelude;
 mod query;
 mod triple;
 
@@ -59,12 +60,15 @@ pub use crate::query::Query;
 pub use crate::sled::SledTripleStore;
 pub use crate::triple::{DecoratedTriple, Triple};
 
+pub trait PropertiesType: Clone + std::fmt::Debug + PartialEq {}
+impl<T: Clone + std::fmt::Debug + PartialEq> PropertiesType for T {}
+
 pub trait TripleStoreError {
     type Error;
 }
 
 ///
-pub trait TripleStoreInsert<NodeProperties: Clone, EdgeProperties: Clone>:
+pub trait TripleStoreInsert<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     ///
@@ -87,7 +91,7 @@ pub trait TripleStoreInsert<NodeProperties: Clone, EdgeProperties: Clone>:
 }
 
 ///
-pub trait TripleStoreRemove<NodeProperties: Clone, EdgeProperties: Clone>:
+pub trait TripleStoreRemove<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     ///
@@ -106,7 +110,7 @@ pub trait TripleStoreRemove<NodeProperties: Clone, EdgeProperties: Clone>:
     ) -> Result<(), Self::Error>;
 }
 
-pub trait TripleStoreIter<'a, NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
+pub trait TripleStoreIter<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     ///
@@ -145,7 +149,7 @@ pub trait TripleStoreIter<'a, NodeProperties: Clone + PartialEq, EdgeProperties:
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
 }
 
-pub trait TripleStoreIntoIter<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
+pub trait TripleStoreIntoIter<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     //
@@ -191,7 +195,9 @@ pub trait TripleStoreIntoIter<NodeProperties: Clone + PartialEq, EdgeProperties:
 }
 
 ///
-pub trait TripleStoreQuery<NodeProperties: Clone, EdgeProperties: Clone>: TripleStoreError {
+pub trait TripleStoreQuery<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
+    TripleStoreError
+{
     ///
     type QueryResult;
 
@@ -200,7 +206,7 @@ pub trait TripleStoreQuery<NodeProperties: Clone, EdgeProperties: Clone>: Triple
 }
 
 ///
-pub trait TripleStoreSetOps<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>:
+pub trait TripleStoreSetOps<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     ///
@@ -220,7 +226,7 @@ pub trait TripleStoreSetOps<NodeProperties: Clone + PartialEq, EdgeProperties: C
 }
 
 ///
-pub trait TripleStoreExtend<NodeProperties: Clone, EdgeProperties: Clone>:
+pub trait TripleStoreExtend<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
     /// Consume `other` and add its nodes and edges to this Triplestore.
@@ -230,8 +236,10 @@ pub trait TripleStoreExtend<NodeProperties: Clone, EdgeProperties: Clone>:
 }
 
 ///
-pub trait TripleStoreMerge<NodeProperties: Clone + Mergeable, EdgeProperties: Clone + Mergeable>:
-    TripleStoreError
+pub trait TripleStoreMerge<
+    NodeProperties: PropertiesType + Mergeable,
+    EdgeProperties: PropertiesType + Mergeable,
+>: TripleStoreError
 {
     ///
     fn merge(&mut self, other: Self);

@@ -1,41 +1,41 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{Mergeable, TripleStoreMerge};
+use crate::{Mergeable, PropertiesType, TripleStoreMerge};
 
 use super::SledTripleStore;
 
 impl<
-        NodeProperties: Clone + Mergeable + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Mergeable + Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Mergeable + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Mergeable + Serialize + DeserializeOwned,
     > TripleStoreMerge<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn merge(&mut self, other: Self) {
+    fn merge(&mut self, _other: Self) {
         todo!()
     }
 
-    fn merge_node(&mut self, node: ulid::Ulid, data: NodeProperties) -> Result<(), Self::Error> {
+    fn merge_node(&mut self, _node: ulid::Ulid, _data: NodeProperties) -> Result<(), Self::Error> {
         todo!()
     }
 
     fn merge_node_batch(
         &mut self,
-        nodes: impl Iterator<Item = (ulid::Ulid, NodeProperties)>,
+        _nodes: impl Iterator<Item = (ulid::Ulid, NodeProperties)>,
     ) -> Result<(), Self::Error> {
         todo!()
     }
 
     fn merge_edge(
         &mut self,
-        triple: crate::Triple,
-        data: EdgeProperties,
+        _triple: crate::Triple,
+        _data: EdgeProperties,
     ) -> Result<(), Self::Error> {
         todo!()
     }
 
     fn merge_edge_batch(
         &mut self,
-        triples: impl Iterator<Item = (crate::Triple, EdgeProperties)>,
+        _triples: impl Iterator<Item = (crate::Triple, EdgeProperties)>,
     ) -> Result<(), Self::Error> {
         todo!()
     }

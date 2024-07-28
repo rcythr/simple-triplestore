@@ -1,10 +1,10 @@
 use ulid::Ulid;
 
-use crate::{DecoratedTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
+use crate::{DecoratedTriple, PropertiesType, Triple, TripleStoreIntoIter, TripleStoreIter};
 
 use super::MemTripleStore;
 
-impl<'a, NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>
+impl<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreIter<'a, NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
@@ -111,7 +111,7 @@ impl<'a, NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>
     }
 }
 
-impl<NodeProperties: Clone + PartialEq, EdgeProperties: Clone + PartialEq>
+impl<NodeProperties: PropertiesType + PartialEq, EdgeProperties: PropertiesType + PartialEq>
     TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

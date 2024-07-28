@@ -1,13 +1,13 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::Transactional;
 
-use crate::TripleStoreExtend;
+use crate::{PropertiesType, TripleStoreExtend};
 
 use super::{Error, SledTripleStore};
 
 impl<
-        NodeProperties: Clone + Serialize + DeserializeOwned,
-        EdgeProperties: Clone + Serialize + DeserializeOwned,
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
     > TripleStoreExtend<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

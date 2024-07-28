@@ -1,11 +1,6 @@
-use crate::{
-    Triple, TripleStoreExtend, TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter,
-    TripleStoreSetOps,
-};
+use crate::{prelude::*, PropertiesType};
 
-use super::MemTripleStore;
-
-impl<NodeProperties: PartialEq + Clone, EdgeProperties: PartialEq + Clone>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreSetOps<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
