@@ -13,7 +13,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         query: Query,
     ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
         Ok(match query {
-            Query::NodeProperty(nodes) => {
+            Query::NodeProps(nodes) => {
                 let mut result = MemTripleStore::new();
                 for node in nodes {
                     if let Some(data) = self.node_props.get(&node) {
@@ -23,7 +23,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::EdgeProperty(triples) => {
+            Query::EdgeProps(triples) => {
                 let mut result = MemTripleStore::new();
                 for triple in triples.into_iter() {
                     if let Some(data_id) = self.spo_data.get(&triple.encode_spo()) {
@@ -250,7 +250,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::NodeProperty([config.node_1, config.node_2].into()))
+            .query(Query::NodeProps([config.node_1, config.node_2].into()))
             .expect("ok");
 
         assert_eq!(
@@ -271,7 +271,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::EdgeProperty(
+            .query(Query::EdgeProps(
                 [
                     Triple {
                         sub: config.node_1,

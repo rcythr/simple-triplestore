@@ -7,14 +7,13 @@ mod iter;
 mod merge;
 mod query;
 mod remove;
-mod set;
 
+#[derive(Debug)]
 pub enum Error {
     SledError(sled::Error),
     SerializationError(bincode::Error),
     KeySizeError,
     MissingPropertyData,
-    SetOpsFailure,
 }
 
 /// A triplestore which is backed by a Sled database.
@@ -59,4 +58,12 @@ impl<
     > TripleStoreError for SledTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = Error;
+}
+
+impl<
+        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+    > TripleStore<NodeProperties, EdgeProperties>
+    for SledTripleStore<NodeProperties, EdgeProperties>
+{
 }

@@ -1,132 +1,180 @@
-use crate::{prelude::*, PropertiesType};
+use crate::{prelude::*, PropertiesType, SetOpsError};
 
 impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreSetOps<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type SetOpsResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    type SetOpsResultError = ();
 
-    fn union(
+    fn union<E: std::fmt::Debug>(
         self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties>,
-    ) -> Result<Self::SetOpsResult, Self::Error> {
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
         let mut result = MemTripleStore::new();
 
         let (self_node_iter, self_edge_iter) = self.into_iters();
         for r in self_node_iter {
-            let (id, props) = r?;
-            result.insert_node(id, props)?;
+            let (id, props) = r.map_err(|e| SetOpsError::Left(e))?;
+            result
+                .insert_node(id, props)
+                .map_err(|e| SetOpsError::Result(e))?;
         }
         for r in self_edge_iter {
-            let (triple, props) = r?;
-            result.insert_edge(triple, props)?;
+            let (triple, props) = r.map_err(|e| SetOpsError::Left(e))?;
+            result
+                .insert_edge(triple, props)
+                .map_err(|e| SetOpsError::Result(e))?;
         }
 
         let (other_node_iter, other_edge_iter) = other.into_iters();
         for r in other_node_iter {
-            let (id, props) = r.map_err(|_| ())?; // TOOD: Replace mem::Error with a real error so we can capture this.
-            result.insert_node(id, props)?;
+            let (id, props) = r.map_err(|e| SetOpsError::Right(e))?;
+            result
+                .insert_node(id, props)
+                .map_err(|e| SetOpsError::Result(e))?;
         }
         for r in other_edge_iter {
-            let (triple, props) = r.map_err(|_| ())?;
-            result.insert_edge(triple, props)?;
+            let (triple, props) = r.map_err(|e| SetOpsError::Right(e))?;
+            result
+                .insert_edge(triple, props)
+                .map_err(|e| SetOpsError::Result(e))?;
         }
 
         Ok(result)
     }
 
-    fn intersection(self, other: Self) -> Result<Self::SetOpsResult, Self::Error> {
-        let mut result = MemTripleStore::new();
+    fn intersection<E: std::fmt::Debug>(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
+        let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
+
+        let (self_nodes, self_edges) = self.into_iters();
+        let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
+        let mut self_edges = self_edges.map(|r| r.map_err(|e| SetOpsError::Left(e)));
+
+        let (other_nodes, other_edges) = other.into_iters();
+        let mut other_nodes = other_nodes.map(|r| r.map_err(|e| SetOpsError::Right(e)));
+        let mut other_edges = other_edges.map(|r| r.map_err(|e| SetOpsError::Right(e)));
 
         // Intersect nodes
-        for (node, data) in self.node_props {
-            if let Some(_) = other.node_props.get(&node) {
-                result.node_props.insert(node, data);
+        {
+            let mut self_node = self_nodes.next().transpose()?;
+            let mut other_node = other_nodes.next().transpose()?;
+
+            while let (Some((left_key, left_props)), Some((right_key, _))) =
+                (&self_node, &other_node)
+            {
+                if left_key < right_key {
+                    self_node = self_nodes.next().transpose()?;
+                } else if right_key < left_key {
+                    other_node = other_nodes.next().transpose()?;
+                } else {
+                    result
+                        .insert_node(*left_key, left_props.clone())
+                        .map_err(|e| SetOpsError::Result(e))?;
+                    self_node = self_nodes.next().transpose()?;
+                    other_node = other_nodes.next().transpose()?;
+                }
             }
         }
-
-        let edge_data = self.edge_props;
 
         // Intersect edges
-        let mut left_iter = self.spo_data.into_iter();
-        let mut left = left_iter.next();
+        {
+            let mut self_edge = self_edges.next().transpose()?;
+            let mut other_edge = other_edges.next().transpose()?;
 
-        let mut right_iter = other.spo_data.into_iter();
-        let mut right = right_iter.next();
-
-        while left.is_some() && right.is_some() {
-            let left_key = left.as_ref().unwrap().0;
-            let right_key = right.as_ref().unwrap().0;
-
-            if left_key < right_key {
-                left = left_iter.next();
-            } else if right_key < left_key {
-                right = right_iter.next();
-            } else {
-                let triple = Triple::decode_spo(&left_key);
-                if result.node_props.contains_key(&triple.sub)
-                    && result.node_props.contains_key(&triple.obj)
-                {
-                    if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                        result.insert_edge(triple, data.clone())?;
-                    }
+            while let (Some((self_key, self_props)), Some((other_key, _))) =
+                (&self_edge, &other_edge)
+            {
+                if self_key < other_key {
+                    self_edge = self_edges.next().transpose()?;
+                } else if other_key < self_key {
+                    other_edge = other_edges.next().transpose()?;
+                } else {
+                    result
+                        .insert_edge(self_key.clone(), self_props.clone())
+                        .map_err(|e| SetOpsError::Result(e))?;
+                    self_edge = self_edges.next().transpose()?;
+                    other_edge = other_edges.next().transpose()?;
                 }
-                left = left_iter.next();
-                right = right_iter.next();
             }
         }
-
         Ok(result)
     }
 
-    fn difference(self, other: Self) -> Result<Self::SetOpsResult, Self::Error> {
-        let mut result = MemTripleStore::new();
+    fn difference<E: std::fmt::Debug>(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
+        let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
+
+        let (self_nodes, self_edges) = self.into_iters();
+        let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
+        let mut self_edges = self_edges.map(|r| r.map_err(|e| SetOpsError::Left(e)));
+
+        let (other_nodes, other_edges) = other.into_iters();
+        let mut other_nodes = other_nodes.map(|r| r.map_err(|e| SetOpsError::Right(e)));
+        let mut other_edges = other_edges.map(|r| r.map_err(|e| SetOpsError::Right(e)));
 
         // Intersect nodes
-        result.node_props = self.node_props.clone();
-        for (node, _) in other.node_props {
-            if let Some(_) = self.node_props.get(&node) {
-                result.node_props.remove(&node);
+        {
+            let mut self_node = self_nodes.next().transpose()?;
+            let mut other_node = other_nodes.next().transpose()?;
+
+            while let (Some((left_key, left_props)), Some((right_key, _))) =
+                (&self_node, &other_node)
+            {
+                if left_key < right_key {
+                    result
+                        .insert_node(*left_key, left_props.clone())
+                        .map_err(|e| SetOpsError::Result(e))?;
+                    self_node = self_nodes.next().transpose()?;
+                } else if right_key < left_key {
+                    other_node = other_nodes.next().transpose()?;
+                } else {
+                    self_node = self_nodes.next().transpose()?;
+                    other_node = other_nodes.next().transpose()?;
+                }
+            }
+
+            while let Some((left_key, left_props)) = &self_node {
+                result
+                    .insert_node(*left_key, left_props.clone())
+                    .map_err(|e| SetOpsError::Result(e))?;
+                self_node = self_nodes.next().transpose()?;
             }
         }
-
-        let edge_data = self.edge_props;
 
         // Intersect edges
-        let mut left_iter = self.spo_data.into_iter();
-        let mut left = left_iter.next();
+        {
+            let mut self_edge = self_edges.next().transpose()?;
+            let mut other_edge = other_edges.next().transpose()?;
 
-        let mut right_iter = other.spo_data.into_iter();
-        let mut right = right_iter.next();
-
-        while left.is_some() && right.is_some() {
-            let left_key = left.as_ref().unwrap().0;
-            let right_key = right.as_ref().unwrap().0;
-
-            if left_key < right_key {
-                let triple = Triple::decode_spo(&left_key);
-
-                if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                    result.insert_edge(triple, data.clone())?;
+            while let (Some((self_key, self_props)), Some((other_key, _))) =
+                (&self_edge, &other_edge)
+            {
+                if self_key < other_key {
+                    result
+                        .insert_edge(self_key.clone(), self_props.clone())
+                        .map_err(|e| SetOpsError::Result(e))?;
+                    self_edge = self_edges.next().transpose()?;
+                } else if other_key < self_key {
+                    other_edge = other_edges.next().transpose()?;
+                } else {
+                    self_edge = self_edges.next().transpose()?;
+                    other_edge = other_edges.next().transpose()?;
                 }
+            }
 
-                left = left_iter.next();
-            } else if right_key < left_key {
-                right = right_iter.next();
-            } else {
-                left = left_iter.next();
-                right = right_iter.next();
+            while let Some((self_key, self_props)) = &self_edge {
+                result
+                    .insert_edge(self_key.clone(), self_props.clone())
+                    .map_err(|e| SetOpsError::Result(e))?;
+                self_edge = self_edges.next().transpose()?;
             }
         }
-
-        while left.is_some() {
-            let triple = Triple::decode_spo(&left.as_ref().unwrap().0);
-            if let Some(data) = edge_data.get(&left.as_ref().unwrap().1) {
-                result.insert_edge(triple, data.clone())?;
-            }
-            left = left_iter.next();
-        }
-
         Ok(result)
     }
 }

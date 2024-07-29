@@ -1,4 +1,4 @@
-use crate::{PropertiesType, Triple, TripleStoreError};
+use crate::{prelude::*, PropertiesType};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::{Hash, Hasher},
@@ -228,4 +228,9 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> TripleStore
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = ();
+}
+
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStore<NodeProperties, EdgeProperties> for MemTripleStore<NodeProperties, EdgeProperties>
+{
 }

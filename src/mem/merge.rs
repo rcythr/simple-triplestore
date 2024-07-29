@@ -2,7 +2,7 @@ use ulid::Ulid;
 
 use crate::{Mergeable, PropertiesType, Triple, TripleStoreMerge};
 
-use super::MemTripleStore;
+use super::{MemTripleStore, MergeError, TripleStore};
 
 impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType + Mergeable>
     MemTripleStore<NodeProperties, EdgeProperties>
@@ -32,8 +32,15 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
     TripleStoreMerge<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn merge(&mut self, mut other: Self) {
-        for (id, data) in other.node_props {
+    fn merge<E: std::fmt::Debug>(
+        &mut self,
+        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<(), MergeError<Self::Error, E>> {
+        let (other_nodes, other_edges) = other.into_iters();
+
+        for r in other_nodes {
+            let (id, data) = r.map_err(|e| MergeError::Right(e))?;
+
             match self.node_props.entry(id) {
                 std::collections::btree_map::Entry::Occupied(mut o) => {
                     o.get_mut().merge(data);
@@ -44,54 +51,39 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
             }
         }
 
-        for (id, other_edge_props_id) in other.spo_data {
-            match self.spo_data.entry(id) {
+        for r in other_edges {
+            let (id, other_edge_props) = r.map_err(|e| MergeError::Right(e))?;
+
+            match self.spo_data.entry(id.encode_spo()) {
                 std::collections::btree_map::Entry::Vacant(self_spo_data_v) => {
                     // We don't have this edge already.
-                    // Get the content from other.edge_props
-                    other
-                        .edge_props
-                        .remove(&other_edge_props_id)
-                        .map(|other_edge_props| {
-                            self_spo_data_v.insert(other_edge_props_id);
-                            self.edge_props
-                                .insert(other_edge_props_id, other_edge_props);
-                        });
+                    let other_edge_props_id = Ulid::new();
+
+                    self_spo_data_v.insert(other_edge_props_id);
+                    self.edge_props
+                        .insert(other_edge_props_id, other_edge_props);
                 }
 
                 std::collections::btree_map::Entry::Occupied(self_spo_data_o) => {
                     let self_edge_props_id = self_spo_data_o.get();
 
                     let self_edge_data = self.edge_props.entry(*self_edge_props_id);
-                    let other_edge_data = other.edge_props.entry(other_edge_props_id);
 
                     // Merge our edge props using the existing id.
+                    match self_edge_data {
+                        std::collections::btree_map::Entry::Vacant(v) => {
+                            v.insert(other_edge_props);
+                        }
 
-                    match (self_edge_data, other_edge_data) {
-                        (
-                            std::collections::btree_map::Entry::Vacant(_),
-                            std::collections::btree_map::Entry::Vacant(_),
-                        ) => {}
-                        (
-                            std::collections::btree_map::Entry::Vacant(v),
-                            std::collections::btree_map::Entry::Occupied(o),
-                        ) => {
-                            v.insert(o.remove());
+                        std::collections::btree_map::Entry::Occupied(mut self_o) => {
+                            self_o.get_mut().merge(other_edge_props)
                         }
-                        (
-                            std::collections::btree_map::Entry::Occupied(_),
-                            std::collections::btree_map::Entry::Vacant(_),
-                        ) => {
-                            // Nothing to do.
-                        }
-                        (
-                            std::collections::btree_map::Entry::Occupied(mut self_o),
-                            std::collections::btree_map::Entry::Occupied(other_o),
-                        ) => self_o.get_mut().merge(other_o.remove()),
                     }
                 }
             };
         }
+
+        Ok(())
     }
 
     fn merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), ()> {

@@ -1,83 +1,70 @@
+use std::collections::BTreeMap;
+
+use sled::IVec;
 use ulid::Ulid;
 
-use crate::{DecoratedTriple, PropertiesType, Triple, TripleStoreIntoIter, TripleStoreIter};
+use crate::{PropertiesType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
 
 use super::MemTripleStore;
 
-impl<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
-    TripleStoreIter<'a, NodeProperties, EdgeProperties>
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    MemTripleStore<NodeProperties, EdgeProperties>
+{
+    fn iter_impl(
+        node_props: &BTreeMap<Ulid, NodeProperties>,
+        edge_props: &BTreeMap<Ulid, EdgeProperties>,
+        triple: Triple,
+        v: &Ulid,
+    ) -> Option<Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
+        let sub_data = node_props.get(&triple.sub).cloned();
+        let pred_data = edge_props.get(v).cloned();
+        let obj_data = node_props.get(&triple.obj).cloned();
+
+        match (sub_data, pred_data, obj_data) {
+            (Some(sub_props), Some(prod_props), Some(obj_props)) => Some(Ok(PropsTriple {
+                sub: (triple.sub, sub_props),
+                pred: (triple.pred, prod_props),
+                obj: (triple.obj, obj_props),
+            })),
+            _ => None,
+        }
+    }
+}
+
+impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+    TripleStoreIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn iter_spo(
+    fn iter_spo<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> + 'a
-    {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
         self.spo_data.iter().filter_map(|(k, v)| {
             let triple = Triple::decode_spo(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).cloned();
-            let pred_data = self.edge_props.get(v).cloned();
-            let obj_data = self.node_props.get(&triple.obj).cloned();
-
-            match (sub_data, pred_data, obj_data) {
-                (Some(sub_data), Some(pred_data), Some(obj_data)) => Some(Ok(DecoratedTriple {
-                    triple,
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
-    fn iter_pos(
+    fn iter_pos<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> + 'a
-    {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
         self.pos_data.iter().filter_map(|(k, v)| {
             let triple = Triple::decode_pos(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).cloned();
-            let pred_data = self.edge_props.get(v).cloned();
-            let obj_data = self.node_props.get(&triple.obj).cloned();
-
-            match (sub_data, pred_data, obj_data) {
-                (Some(sub_data), Some(pred_data), Some(obj_data)) => Some(Ok(DecoratedTriple {
-                    triple,
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
-    fn iter_osp(
+    fn iter_osp<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> + 'a
-    {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
         self.osp_data.iter().filter_map(|(k, v)| {
             let triple = Triple::decode_osp(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).cloned();
-            let pred_data = self.edge_props.get(v).cloned();
-            let obj_data = self.node_props.get(&triple.obj).cloned();
-
-            match (sub_data, pred_data, obj_data) {
-                (Some(sub_data), Some(pred_data), Some(obj_data)) => Some(Ok(DecoratedTriple {
-                    triple,
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
-    fn iter_edge_spo(&'a self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
+    fn iter_edge_spo<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
         self.spo_data
             .iter()
             .filter_map(|(k, v)| match self.edge_props.get(&v) {
@@ -86,7 +73,9 @@ impl<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
             })
     }
 
-    fn iter_edge_pos(&'a self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
+    fn iter_edge_pos<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
         self.pos_data
             .iter()
             .filter_map(|(k, v)| match self.edge_props.get(&v) {
@@ -95,7 +84,9 @@ impl<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
             })
     }
 
-    fn iter_edge_osp(&'a self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
+    fn iter_edge_osp<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
         self.osp_data
             .iter()
             .filter_map(|(k, v)| match self.edge_props.get(&v) {
@@ -104,7 +95,7 @@ impl<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
             })
     }
 
-    fn iter_node(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> + 'a {
+    fn iter_node<'a>(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> + 'a {
         self.node_props
             .iter()
             .map(|(id, props)| Ok((id.clone(), props.clone())))
@@ -134,67 +125,28 @@ impl<NodeProperties: PropertiesType + PartialEq, EdgeProperties: PropertiesType 
 
     fn into_iter_spo(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
         self.spo_data.into_iter().filter_map(move |(k, v)| {
             let triple = Triple::decode_spo(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).map(|o| o.clone());
-            let obj_data = self.node_props.get(&triple.obj).map(|o| o.clone());
-            let pred_data = self.edge_props.get(&v).map(|o| o.clone());
-
-            match (sub_data, obj_data, pred_data) {
-                (Some(sub_data), Some(obj_data), Some(pred_data)) => Some(Ok(DecoratedTriple {
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                    triple,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
     fn into_iter_pos(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
         self.pos_data.into_iter().filter_map(move |(k, v)| {
             let triple = Triple::decode_pos(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).map(|o| o.clone());
-            let obj_data = self.node_props.get(&triple.obj).map(|o| o.clone());
-            let pred_data = self.edge_props.get(&v).map(|o| o.clone());
-
-            match (sub_data, obj_data, pred_data) {
-                (Some(sub_data), Some(obj_data), Some(pred_data)) => Some(Ok(DecoratedTriple {
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                    triple,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
     fn into_iter_osp(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, ()>> {
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
         self.osp_data.into_iter().filter_map(move |(k, v)| {
             let triple = Triple::decode_osp(&k);
-
-            let sub_data = self.node_props.get(&triple.sub).map(|o| o.clone());
-            let obj_data = self.node_props.get(&triple.obj).map(|o| o.clone());
-            let pred_data = self.edge_props.get(&v).map(|o| o.clone());
-
-            match (sub_data, obj_data, pred_data) {
-                (Some(sub_data), Some(obj_data), Some(pred_data)) => Some(Ok(DecoratedTriple {
-                    sub_data,
-                    obj_data,
-                    pred_data,
-                    triple,
-                })),
-                _ => None,
-            }
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
         })
     }
 
@@ -235,7 +187,7 @@ mod test {
     use ulid::Ulid;
 
     use crate::{
-        DecoratedTriple, MemTripleStore, Triple, TripleStoreInsert, TripleStoreIntoIter,
+        MemTripleStore, PropsTriple, Triple, TripleStoreInsert, TripleStoreIntoIter,
         TripleStoreIter,
     };
 
@@ -352,35 +304,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
             ]
             .to_vec()
@@ -398,35 +335,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
             ]
             .to_vec()
@@ -444,35 +366,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
             ]
             .to_vec()
@@ -630,35 +537,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
             ]
             .to_vec()
@@ -676,35 +568,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
             ]
             .to_vec()
@@ -722,35 +599,20 @@ mod test {
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_3.clone(),
-                        pred: config.edge_3.clone(),
-                        obj: config.node_4.clone(),
-                    },
-                    sub_data: config.node_props_3.clone(),
-                    pred_data: config.edge_props_3.clone(),
-                    obj_data: config.node_props_4.clone()
+                PropsTriple {
+                    sub: (config.node_3, config.node_props_3.clone()),
+                    pred: (config.edge_3, config.edge_props_3.clone()),
+                    obj: (config.node_4, config.node_props_4.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_1.clone(),
-                        pred: config.edge_1.clone(),
-                        obj: config.node_2.clone(),
-                    },
-                    sub_data: config.node_props_1.clone(),
-                    pred_data: config.edge_props_1.clone(),
-                    obj_data: config.node_props_2.clone()
+                PropsTriple {
+                    sub: (config.node_1, config.node_props_1.clone()),
+                    pred: (config.edge_1, config.edge_props_1.clone()),
+                    obj: (config.node_2, config.node_props_2.clone())
                 },
-                DecoratedTriple {
-                    triple: Triple {
-                        sub: config.node_2.clone(),
-                        pred: config.edge_2.clone(),
-                        obj: config.node_3.clone(),
-                    },
-                    sub_data: config.node_props_2.clone(),
-                    pred_data: config.edge_props_2.clone(),
-                    obj_data: config.node_props_3.clone()
+                PropsTriple {
+                    sub: (config.node_2, config.node_props_2.clone()),
+                    pred: (config.edge_2, config.edge_props_2.clone()),
+                    obj: (config.node_3, config.node_props_3.clone())
                 },
             ]
             .to_vec()

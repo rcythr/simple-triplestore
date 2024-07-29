@@ -13,8 +13,8 @@ impl<
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
     fn query(&self, query: crate::Query) -> Result<Self::QueryResult, Self::Error> {
         match query {
-            crate::Query::NodeProperty(_) => todo!(),
-            crate::Query::EdgeProperty(_) => todo!(),
+            crate::Query::NodeProps(_) => todo!(),
+            crate::Query::EdgeProps(_) => todo!(),
             crate::Query::O(_) => todo!(),
             crate::Query::S(_) => todo!(),
             crate::Query::P(_) => todo!(),

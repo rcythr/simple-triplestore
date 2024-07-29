@@ -58,43 +58,69 @@ pub use crate::mergeable::Mergeable;
 pub use crate::query::Query;
 #[cfg(feature = "sled")]
 pub use crate::sled::SledTripleStore;
-pub use crate::triple::{DecoratedTriple, Triple};
+pub use crate::triple::{PropsTriple, Triple};
 
 pub trait PropertiesType: Clone + std::fmt::Debug + PartialEq {}
 impl<T: Clone + std::fmt::Debug + PartialEq> PropertiesType for T {}
 
+/// A trait that encapsulates the error type used by other traits in the library.
 pub trait TripleStoreError {
-    type Error;
+    type Error: std::fmt::Debug;
 }
 
+/// A trait representing a graph constructed of vertices and edges, collectively referred to as nodes.
 ///
+/// Nodes can be annotated with properties of arbitrary types as long as they conform to the `PropertiesType` trait.
+/// Edges can also be annotated with properties conforming to the `PropertiesType` trait.
+///
+/// Triple stores support insertion, removal, iteration, querying, extension, and merging.
+pub trait TripleStore<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
+    TripleStoreInsert<NodeProperties, EdgeProperties>
+    + TripleStoreRemove<NodeProperties, EdgeProperties>
+    + TripleStoreIter<NodeProperties, EdgeProperties>
+    + TripleStoreIntoIter<NodeProperties, EdgeProperties>
+    + TripleStoreQuery<NodeProperties, EdgeProperties>
+    + TripleStoreExtend<NodeProperties, EdgeProperties>
+{
+}
+
+/// A trait for insertion operations in triple stores.
+///
+/// Allows insertion of vertices (nodes) and edges, both singularly and in batches.
 pub trait TripleStoreInsert<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    ///
-    fn insert_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), Self::Error>;
+    /// Insert a node with `id` and `props`.
+    fn insert_node(&mut self, id: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
 
+    /// Insert a collection of nodes with (id, props).
     ///
+    /// Implementations may either optimize batch insertion or repeatedly call `insert_node`.
     fn insert_node_batch(
         &mut self,
         nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
     ) -> Result<(), Self::Error>;
 
+    /// Insert an edge with `triple` and `props`.
     ///
-    fn insert_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), Self::Error>;
+    /// Nodes need not be inserted before edges. Orphaned edges (edges referring to missing nodes) are ignored
+    /// by iteration functions and higher-order operations.
+    fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
 
+    /// Insert a collection of edges with (triple, props).
     ///
+    /// Implementations may either optimize batch insertion or iteratively call `insert_edge`.
     fn insert_edge_batch(
         &mut self,
         triples: impl Iterator<Item = (Triple, EdgeProperties)>,
     ) -> Result<(), Self::Error>;
 }
 
-///
+/// Removal operations for TripleStores.
 pub trait TripleStoreRemove<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    ///
+    /// Remove the
     fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error>;
 
     ///
@@ -110,41 +136,42 @@ pub trait TripleStoreRemove<NodeProperties: PropertiesType, EdgeProperties: Prop
     ) -> Result<(), Self::Error>;
 }
 
-pub trait TripleStoreIter<'a, NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
+// Iteration functions which do not consume the TripleStore.
+pub trait TripleStoreIter<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    ///
-    fn iter_spo(
+    /// Iterate over the edges in the triplestore
+    fn iter_spo<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
 
     ///
-    fn iter_pos(
+    fn iter_pos<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
 
     ///
-    fn iter_osp(
+    fn iter_osp<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
 
     ///
-    fn iter_node(
+    fn iter_node<'a>(
         &'a self,
     ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> + 'a;
 
     ///
-    fn iter_edge_spo(
+    fn iter_edge_spo<'a>(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
 
     ///
-    fn iter_edge_pos(
+    fn iter_edge_pos<'a>(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
 
     ///
-    fn iter_edge_osp(
+    fn iter_edge_osp<'a>(
         &'a self,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
 }
@@ -163,17 +190,17 @@ pub trait TripleStoreIntoIter<NodeProperties: PropertiesType, EdgeProperties: Pr
     ///
     fn into_iter_spo(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>>;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
 
     ///
     fn into_iter_pos(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>>;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
 
     ///
     fn into_iter_osp(
         self,
-    ) -> impl Iterator<Item = Result<DecoratedTriple<NodeProperties, EdgeProperties>, Self::Error>>;
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
 
     ///
     fn into_iter_node(self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>;
@@ -194,69 +221,120 @@ pub trait TripleStoreIntoIter<NodeProperties: PropertiesType, EdgeProperties: Pr
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
 }
 
+/// A trait for querying operations in a triple store.
 ///
+/// Supports arbitrary source, predicate, and object queries, as well as lookups for properties of nodes and edges.
 pub trait TripleStoreQuery<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    ///
+    /// The result type of a query.
     type QueryResult;
 
-    ///
+    /// Execute a query and return the result.
     fn query(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;
 }
 
+#[derive(Debug)]
+pub enum SetOpsError<
+    LeftError: std::fmt::Debug,
+    RightError: std::fmt::Debug,
+    ResultError: std::fmt::Debug,
+> {
+    Left(LeftError),
+    Right(RightError),
+    Result(ResultError),
+}
+
+/// A trait for basic set operations in a memory-based triple store.
 ///
+/// Provides functionality for union, intersection, and difference operations on sets of triples.
 pub trait TripleStoreSetOps<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    ///
-    type SetOpsResult;
+    /// The result type for set operations.
+    type SetOpsResult: TripleStore<NodeProperties, EdgeProperties>;
+    type SetOpsResultError: std::fmt::Debug;
 
-    ///
-    fn union(
+    /// Set union of properties and triples with another triple store.
+    fn union<E: std::fmt::Debug>(
         self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties>,
-    ) -> Result<Self::SetOpsResult, Self::Error>;
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
 
-    ///
-    fn intersection(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+    /// Set intersection of properties and triples with another triple store.
+    fn intersection<E: std::fmt::Debug>(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
 
-    ///
-    fn difference(self, other: Self) -> Result<Self::SetOpsResult, Self::Error>;
+    /// Set difference of properties triples with another triple store.
+    fn difference<E: std::fmt::Debug>(
+        self,
+        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
 }
 
+#[derive(Debug)]
+pub enum ExtendError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
+    Left(LeftError),
+    Right(RightError),
+}
+
+/// A trait for extending a triple store with elements from another triple store.
 ///
+/// Inserts all nodes and edges from `other` into this triple store, replacing existing property data if present.
 pub trait TripleStoreExtend<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    /// Consume `other` and add its nodes and edges to this Triplestore.
+    /// Extend this triple store with nodes and edges from `other`.
     ///
-    /// Existing property data will be replaced with property data found in `other`.
-    fn extend(&mut self, other: Self) -> Result<(), Self::Error>;
+    /// Property data for existing nodes will be replaced with data from `other`.
+    fn extend<E: std::fmt::Debug>(
+        &mut self,
+        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<(), ExtendError<Self::Error, E>>;
 }
 
+#[derive(Debug)]
+pub enum MergeError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
+    Left(LeftError),
+    Right(RightError),
+}
+
+/// A trait for merging operations in triple stores.
 ///
+/// If `NodeProperties` and `EdgeProperties` support the [Mergeable] trait, this trait provides functionality to
+/// merge elements from another triple store, merging properties rather than replacing them.
 pub trait TripleStoreMerge<
     NodeProperties: PropertiesType + Mergeable,
     EdgeProperties: PropertiesType + Mergeable,
 >: TripleStoreError
 {
+    /// Merge all elements from `other` into this triple store.
     ///
-    fn merge(&mut self, other: Self);
+    /// Duplicate elements will be merged using the `Mergeable` trait's merge operation.
+    fn merge<E: std::fmt::Debug>(
+        &mut self,
+        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<(), MergeError<Self::Error, E>>;
 
-    ///
-    fn merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), Self::Error>;
+    /// Merge a single node with `id` and `props`.
+    fn merge_node(&mut self, node: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
 
+    //// Merge a collection of nodes with `(id, props)`.
     ///
+    /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
     fn merge_node_batch(
         &mut self,
         nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
     ) -> Result<(), Self::Error>;
 
-    ///
-    fn merge_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), Self::Error>;
+    //// Merge a collection of edges with `(id, props)`.
+    fn merge_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
 
+    /// Merge a collection of edges with `(triple, props)`.
     ///
+    /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
     fn merge_edge_batch(
         &mut self,
         triples: impl Iterator<Item = (Triple, EdgeProperties)>,

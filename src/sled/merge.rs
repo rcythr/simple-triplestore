@@ -1,8 +1,6 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{Mergeable, PropertiesType, TripleStoreMerge};
-
-use super::SledTripleStore;
+use crate::{prelude::*, PropertiesType};
 
 impl<
         NodeProperties: PropertiesType + Mergeable + Serialize + DeserializeOwned,
@@ -10,7 +8,10 @@ impl<
     > TripleStoreMerge<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn merge(&mut self, _other: Self) {
+    fn merge<E: std::fmt::Debug>(
+        &mut self,
+        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+    ) -> Result<(), MergeError<Self::Error, E>> {
         todo!()
     }
 
