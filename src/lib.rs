@@ -138,15 +138,14 @@ pub use crate::triple::{PropsTriple, Triple};
 /// # db.insert_node(node_3, "baz".to_string())?;
 /// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3]))?;
 /// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))?;
-///
 /// // 1. Edges where node_3 is the object.
-/// assert_eq!(db.run(Query::O([node_3].into()))?
+/// assert_eq!(db.run(query!{ ? -?-> [node_3] })?
 ///              .iter_edges(EdgeOrder::default()).collect::<Vec<_>>(), [
 ///   Ok((Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))),
 /// ]);
 ///
 /// // Edges with `edge` as the predicate.
-/// assert_eq!(db.run(Query::P([edge].into()))?
+/// assert_eq!(db.run(query!{ ? -[edge]-> ? })?
 ///              .iter_edges(EdgeOrder::default()).collect::<Vec<_>>(), [
 ///   Ok((Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3]))),
 ///   Ok((Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))),

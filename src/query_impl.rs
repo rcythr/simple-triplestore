@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use ulid::Ulid;
 
-/// Represents a query which can be executed on a [TripleStore].
+/// Represents a query which can be executed on a [TripleStore][crate::TripleStore].
 ///
-/// These are most easily created using teh [query!] macro.
+/// These are most easily created using teh [query][crate::query] macro.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Query {
     /// Fetch the NodeProperties for the given set of ids.
