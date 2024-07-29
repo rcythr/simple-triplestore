@@ -3,15 +3,15 @@ use std::borrow::Borrow;
 use serde::{de::DeserializeOwned, Serialize};
 use ulid::Ulid;
 
-use crate::PropertiesType;
+use crate::PropertyType;
 use crate::TripleStoreRemove;
 
 use super::Error;
 use super::SledTripleStore;
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStoreRemove<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

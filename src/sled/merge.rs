@@ -1,10 +1,10 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{prelude::*, PropertiesType};
+use crate::{prelude::*, PropertyType};
 
 impl<
-        NodeProperties: PropertiesType + Mergeable + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Mergeable + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Mergeable + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Mergeable + Serialize + DeserializeOwned,
     > TripleStoreMerge<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

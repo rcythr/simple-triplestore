@@ -1,9 +1,9 @@
-use crate::{PropertiesType, TripleStoreQuery};
+use crate::{PropertyType, TripleStoreQuery};
 use crate::{Query, Triple, TripleStoreInsert};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreQuery<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
@@ -23,9 +23,10 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 result
             }
 
-            Query::EdgeProps(triples) => {
+            Query::SPO(triples) => {
                 let mut result = MemTripleStore::new();
-                for triple in triples.into_iter() {
+                for (sub, pred, obj) in triples.into_iter() {
+                    let triple = Triple { sub, pred, obj };
                     if let Some(data_id) = self.spo_data.get(&triple.encode_spo()) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result.insert_edge(triple, data.clone())?;
@@ -277,18 +278,10 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .run(Query::EdgeProps(
+            .run(Query::SPO(
                 [
-                    Triple {
-                        sub: config.node_1,
-                        pred: config.edge_1,
-                        obj: config.node_2,
-                    },
-                    Triple {
-                        sub: config.node_2,
-                        pred: config.edge_2,
-                        obj: config.node_4,
-                    },
+                    (config.node_1, config.edge_1, config.node_2),
+                    (config.node_2, config.edge_2, config.node_4),
                 ]
                 .into(),
             ))

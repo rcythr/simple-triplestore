@@ -1,6 +1,6 @@
-use crate::{prelude::*, EdgeOrder, PropertiesType, SetOpsError};
+use crate::{prelude::*, EdgeOrder, PropertyType, SetOpsError};
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreSetOps<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

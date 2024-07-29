@@ -1,4 +1,4 @@
-use crate::{prelude::*, PropertiesType};
+use crate::{prelude::*, PropertyType};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::{Hash, Hasher},
@@ -15,7 +15,7 @@ mod set;
 
 /// A triple store implemented entirely in memory using [std::collections::BTreeMap].
 #[derive(Clone)]
-pub struct MemTripleStore<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> {
+pub struct MemTripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType> {
     node_props: BTreeMap<Ulid, NodeProperties>,
     edge_props: BTreeMap<Ulid, EdgeProperties>,
     spo_data: BTreeMap<[u8; 48], Ulid>,
@@ -23,7 +23,7 @@ pub struct MemTripleStore<NodeProperties: PropertiesType, EdgeProperties: Proper
     osp_data: BTreeMap<[u8; 48], Ulid>,
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> std::fmt::Debug
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -135,7 +135,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> std::fmt::D
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> PartialEq
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn eq(&self, other: &Self) -> bool {
@@ -210,7 +210,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> PartialEq
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
     pub fn new() -> Self {
@@ -224,13 +224,13 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> TripleStoreError
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> TripleStoreError
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = ();
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStore<NodeProperties, EdgeProperties> for MemTripleStore<NodeProperties, EdgeProperties>
 {
 }

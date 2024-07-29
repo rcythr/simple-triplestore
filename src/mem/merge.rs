@@ -1,10 +1,10 @@
 use ulid::Ulid;
 
-use crate::{Mergeable, PropertiesType, Triple, TripleStoreMerge};
+use crate::{Mergeable, PropertyType, Triple, TripleStoreMerge};
 
 use super::{MemTripleStore, MergeError, TripleStore};
 
-impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType + Mergeable>
+impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Mergeable>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn merge_edge_create_data(
@@ -28,7 +28,7 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
     }
 }
 
-impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType + Mergeable>
+impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Mergeable>
     TripleStoreMerge<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

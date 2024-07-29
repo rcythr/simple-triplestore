@@ -1,10 +1,10 @@
 use ulid::Ulid;
 
-use crate::{ExtendError, PropertiesType, TripleStore, TripleStoreExtend};
+use crate::{ExtendError, PropertyType, TripleStore, TripleStoreExtend};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreExtend<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

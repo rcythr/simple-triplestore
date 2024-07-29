@@ -2,11 +2,11 @@ use std::borrow::Borrow;
 
 use ulid::Ulid;
 
-use crate::{PropertiesType, Triple, TripleStoreRemove};
+use crate::{PropertyType, Triple, TripleStoreRemove};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
     // Gets the set of outgoing edges from a given node.
@@ -72,7 +72,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreRemove<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

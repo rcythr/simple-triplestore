@@ -3,7 +3,7 @@ use sled::IVec;
 use ulid::Ulid;
 
 use crate::EdgeOrder;
-use crate::PropertiesType;
+use crate::PropertyType;
 use crate::PropsTriple;
 use crate::Triple;
 use crate::TripleStoreIntoIter;
@@ -12,8 +12,8 @@ use crate::TripleStoreIter;
 use super::Error;
 use super::SledTripleStore;
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > SledTripleStore<NodeProperties, EdgeProperties>
 {
     fn get_node_data_internal(&self, id: &Vec<u8>) -> Result<Option<NodeProperties>, Error> {
@@ -58,11 +58,26 @@ impl<
     }
 }
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStoreIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
+    fn vertices(&self) -> Result<impl Iterator<Item = Ulid>, Self::Error> {
+        self.node_props
+            .iter()
+            .map(|r| match r {
+                Ok((k, _)) => {
+                    let k =
+                        Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                    Ok(k)
+                }
+                Err(e) => Err(Error::SledError(e)),
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map(|v| v.into_iter())
+    }
+
     fn iter_nodes(
         &self,
         order: EdgeOrder,
@@ -161,8 +176,8 @@ impl<
 }
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

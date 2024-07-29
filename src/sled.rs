@@ -1,4 +1,4 @@
-use crate::{prelude::*, PropertiesType};
+use crate::{prelude::*, PropertyType};
 use serde::{de::DeserializeOwned, Serialize};
 
 mod extend;
@@ -18,7 +18,7 @@ pub enum Error {
 
 /// A triplestore which is backed by a Sled database.
 pub struct SledTripleStore<
-    NodeProperties: PropertiesType + Serialize + DeserializeOwned,
+    NodeProperties: PropertyType + Serialize + DeserializeOwned,
     EdgeProperties: Serialize + DeserializeOwned,
 > {
     _phantom: std::marker::PhantomData<(NodeProperties, EdgeProperties)>,
@@ -30,8 +30,8 @@ pub struct SledTripleStore<
 }
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > SledTripleStore<NodeProperties, EdgeProperties>
 {
     pub fn new(db: &sled::Db) -> Result<Self, sled::Error> {
@@ -53,16 +53,16 @@ impl<
 }
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStoreError for SledTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = Error;
 }
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStore<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

@@ -4,7 +4,7 @@ mod decode;
 mod encode;
 mod key_bounds;
 
-use crate::PropertiesType;
+use crate::PropertyType;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Triple {
@@ -36,13 +36,13 @@ impl PartialOrd for Triple {
 
 // A triple along with the associated Node and Edge properties for .
 #[derive(Debug, Clone, PartialEq)]
-pub struct PropsTriple<NodeProperties: PropertiesType, EdgeProperties: PropertiesType> {
+pub struct PropsTriple<NodeProperties: PropertyType, EdgeProperties: PropertyType> {
     pub sub: (Ulid, NodeProperties),
     pub pred: (Ulid, EdgeProperties),
     pub obj: (Ulid, NodeProperties),
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     From<PropsTriple<NodeProperties, EdgeProperties>> for Triple
 {
     fn from(

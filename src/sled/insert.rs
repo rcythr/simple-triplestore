@@ -2,13 +2,13 @@ use serde::{de::DeserializeOwned, Serialize};
 use sled::Transactional;
 use ulid::Ulid;
 
-use crate::{PropertiesType, Triple, TripleStoreInsert};
+use crate::{PropertyType, Triple, TripleStoreInsert};
 
 use super::{Error, SledTripleStore};
 
 impl<
-        NodeProperties: PropertiesType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertiesType + Serialize + DeserializeOwned,
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > TripleStoreInsert<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {

@@ -1,10 +1,10 @@
 use ulid::Ulid;
 
-use crate::{PropertiesType, Triple, TripleStoreInsert};
+use crate::{PropertyType, Triple, TripleStoreInsert};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
     pub(super) fn insert_edge_data_internal(&mut self, triple: &Triple, new_edge_data_id: &Ulid) {
@@ -35,7 +35,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreInsert<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {

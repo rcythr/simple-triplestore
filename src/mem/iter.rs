@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use ulid::Ulid;
 
-use crate::{EdgeOrder, PropertiesType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
+use crate::{EdgeOrder, PropertyType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     MemTripleStore<NodeProperties, EdgeProperties>
 {
     fn iter_impl(
@@ -30,10 +30,14 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     TripleStoreIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
+    fn vertices(&self) -> Result<impl Iterator<Item = Ulid>, Self::Error> {
+        Ok(self.node_props.iter().map(|e| e.0.clone()))
+    }
+
     fn iter_nodes(
         &self,
         order: EdgeOrder,
@@ -108,7 +112,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-impl<NodeProperties: PropertiesType + PartialEq, EdgeProperties: PropertiesType + PartialEq>
+impl<NodeProperties: PropertyType + PartialEq, EdgeProperties: PropertyType + PartialEq>
     TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
