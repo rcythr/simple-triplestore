@@ -10,7 +10,7 @@ impl<
 {
     fn merge<E: std::fmt::Debug>(
         &mut self,
-        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+        _other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
     ) -> Result<(), MergeError<Self::Error, E>> {
         todo!()
     }
@@ -19,9 +19,9 @@ impl<
         todo!()
     }
 
-    fn merge_node_batch(
+    fn merge_node_batch<I: IntoIterator<Item = (ulid::Ulid, NodeProperties)>>(
         &mut self,
-        _nodes: impl Iterator<Item = (ulid::Ulid, NodeProperties)>,
+        _nodes: I,
     ) -> Result<(), Self::Error> {
         todo!()
     }
@@ -34,9 +34,9 @@ impl<
         todo!()
     }
 
-    fn merge_edge_batch(
+    fn merge_edge_batch<I: IntoIterator<Item = (crate::Triple, EdgeProperties)>>(
         &mut self,
-        _triples: impl Iterator<Item = (crate::Triple, EdgeProperties)>,
+        _triples: I,
     ) -> Result<(), Self::Error> {
         todo!()
     }

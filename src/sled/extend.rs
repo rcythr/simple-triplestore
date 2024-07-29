@@ -10,7 +10,7 @@ impl<
 {
     fn extend<E: std::fmt::Debug>(
         &mut self,
-        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+        _other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
     ) -> Result<(), ExtendError<Self::Error, E>> {
         todo!();
     }

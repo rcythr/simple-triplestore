@@ -42,6 +42,8 @@
 //!   * [Sled][SledTripleStore]
 //!
 
+use std::borrow::Borrow;
+
 use ulid::Ulid;
 
 mod mem;
@@ -96,24 +98,25 @@ pub trait TripleStoreInsert<NodeProperties: PropertiesType, EdgeProperties: Prop
     /// Insert a collection of nodes with (id, props).
     ///
     /// Implementations may either optimize batch insertion or repeatedly call `insert_node`.
-    fn insert_node_batch(
-        &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
-    ) -> Result<(), Self::Error>;
+    fn insert_node_batch<I>(&mut self, nodes: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = (Ulid, NodeProperties)>;
 
     /// Insert an edge with `triple` and `props`.
     ///
-    /// Nodes need not be inserted before edges. Orphaned edges (edges referring to missing nodes) are ignored
-    /// by iteration functions and higher-order operations.
+    /// <div class="warning">Nodes need not be inserted before edges; however, Orphaned edges (edges referring to missing nodes) are ignored
+    /// by iteration functions and higher-order operations.</div>
     fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
 
     /// Insert a collection of edges with (triple, props).
     ///
     /// Implementations may either optimize batch insertion or iteratively call `insert_edge`.
-    fn insert_edge_batch(
-        &mut self,
-        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
-    ) -> Result<(), Self::Error>;
+    ///
+    /// <div class="warning">Nodes need not be inserted before edges; however, orphaned edges (edges referring to missing nodes) are ignored
+    /// by iteration functions and higher-order operations.</div>
+    fn insert_edge_batch<I>(&mut self, triples: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = (Triple, EdgeProperties)>;
 }
 
 /// Removal operations for TripleStores.
@@ -121,18 +124,21 @@ pub trait TripleStoreRemove<NodeProperties: PropertiesType, EdgeProperties: Prop
     TripleStoreError
 {
     /// Remove the
-    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error>;
+    fn remove_node(&mut self, node: impl Borrow<Ulid>) -> Result<(), Self::Error>;
 
     ///
-    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error>;
+    fn remove_node_batch<I: IntoIterator<Item = Ulid>>(
+        &mut self,
+        nodes: I,
+    ) -> Result<(), Self::Error>;
 
     ///
     fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
 
     ///
-    fn remove_edge_batch(
+    fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
         &mut self,
-        triples: impl Iterator<Item = Triple>,
+        triples: I,
     ) -> Result<(), Self::Error>;
 }
 
@@ -231,7 +237,7 @@ pub trait TripleStoreQuery<NodeProperties: PropertiesType, EdgeProperties: Prope
     type QueryResult;
 
     /// Execute a query and return the result.
-    fn query(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;
+    fn run(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;
 }
 
 #[derive(Debug)]
@@ -324,9 +330,9 @@ pub trait TripleStoreMerge<
     //// Merge a collection of nodes with `(id, props)`.
     ///
     /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
-    fn merge_node_batch(
+    fn merge_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
         &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
+        nodes: I,
     ) -> Result<(), Self::Error>;
 
     //// Merge a collection of edges with `(id, props)`.
@@ -335,8 +341,8 @@ pub trait TripleStoreMerge<
     /// Merge a collection of edges with `(triple, props)`.
     ///
     /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
-    fn merge_edge_batch(
+    fn merge_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
         &mut self,
-        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+        triples: I,
     ) -> Result<(), Self::Error>;
 }

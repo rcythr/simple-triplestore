@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use sled::IVec;
 use ulid::Ulid;
 
 use crate::{PropertiesType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};

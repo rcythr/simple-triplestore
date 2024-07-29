@@ -353,6 +353,7 @@ mod test {
         todo!()
     }
 
+    #[test]
     fn test_into_iter_spo() {
         todo!()
     }

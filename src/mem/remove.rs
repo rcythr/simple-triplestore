@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use ulid::Ulid;
 
 use crate::{PropertiesType, Triple, TripleStoreRemove};
@@ -74,13 +76,13 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreRemove<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn remove_node(&mut self, node: &Ulid) -> Result<(), Self::Error> {
+    fn remove_node(&mut self, node: impl Borrow<Ulid>) -> Result<(), Self::Error> {
         // Find all uses of this node in the edges.
-        let (forward_triples, forward_edge_data_ids) = self.get_spo_edge_range(node);
-        let (backward_triples, backward_edge_data_ids) = self.get_osp_edge_range(node);
+        let (forward_triples, forward_edge_data_ids) = self.get_spo_edge_range(node.borrow());
+        let (backward_triples, backward_edge_data_ids) = self.get_osp_edge_range(node.borrow());
 
         // Remove the node props.
-        self.node_props.remove(&node);
+        self.node_props.remove(node.borrow());
 
         // Remove all the edge props for all the edges we'll be removing.
         for edge_data_id in forward_edge_data_ids
@@ -100,7 +102,10 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(())
     }
 
-    fn remove_node_batch(&mut self, nodes: impl Iterator<Item = Ulid>) -> Result<(), Self::Error> {
+    fn remove_node_batch<I: IntoIterator<Item = Ulid>>(
+        &mut self,
+        nodes: I,
+    ) -> Result<(), Self::Error> {
         for node in nodes {
             self.remove_node(&node)?;
         }
@@ -122,9 +127,9 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(())
     }
 
-    fn remove_edge_batch(
+    fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
         &mut self,
-        triples: impl Iterator<Item = Triple>,
+        triples: I,
     ) -> Result<(), Self::Error> {
         for triple in triples {
             self.remove_edge(triple)?;

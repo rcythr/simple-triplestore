@@ -51,9 +51,9 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(())
     }
 
-    fn insert_node_batch(
+    fn insert_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
         &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
+        nodes: I,
     ) -> Result<(), Self::Error> {
         for (node, data) in nodes {
             self.insert_node(node, data)?;
@@ -74,9 +74,9 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(())
     }
 
-    fn insert_edge_batch(
+    fn insert_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
         &mut self,
-        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+        triples: I,
     ) -> Result<(), Self::Error> {
         for (triple, data) in triples {
             self.insert_edge(triple, data)?;
@@ -103,13 +103,13 @@ mod test {
         let (node_4, data_4) = (Ulid(4), "quz".to_string());
         let data_5 = "quz2".to_string();
 
-        db.insert_node(node_1.clone(), data_1.clone())
+        db.insert_node(node_1, data_1.clone())
             .expect("Insert should succeed");
-        db.insert_node(node_2.clone(), data_2.clone())
+        db.insert_node(node_2, data_2.clone())
             .expect("Insert should succeed");
-        db.insert_node(node_3.clone(), data_3.clone())
+        db.insert_node(node_3, data_3.clone())
             .expect("Insert should succeed");
-        db.insert_node(node_4.clone(), data_4.clone())
+        db.insert_node(node_4, data_4.clone())
             .expect("Insert should succeed");
 
         assert_eq!(db.node_props.len(), 4);
@@ -154,17 +154,14 @@ mod test {
         let (node_4, data_4) = (Ulid(4), "quz".to_string());
         let data_5 = "quz2".to_string();
 
-        db.insert_node_batch(
-            [
-                (node_1.clone(), data_1.clone()),
-                (node_2.clone(), data_2.clone()),
-                (node_3.clone(), data_3.clone()),
-                (node_4.clone(), data_4.clone()),
-                // Clobber the earlier entry
-                (node_4.clone(), data_5.clone()),
-            ]
-            .into_iter(),
-        )
+        db.insert_node_batch([
+            (node_1, data_1.clone()),
+            (node_2, data_2.clone()),
+            (node_3, data_3.clone()),
+            (node_4, data_4.clone()),
+            // Clobber the earlier entry
+            (node_4, data_5.clone()),
+        ])
         .expect("insert should succeed");
 
         assert_eq!(db.node_props.len(), 4);
@@ -201,15 +198,12 @@ mod test {
         let (node_3, node_data_3) = (Ulid(3), "baz".to_string());
         let (node_4, node_data_4) = (Ulid(4), "quz".to_string());
 
-        db.insert_node_batch(
-            [
-                (node_1.clone(), node_data_1.clone()),
-                (node_2.clone(), node_data_2.clone()),
-                (node_3.clone(), node_data_3.clone()),
-                (node_4.clone(), node_data_4.clone()),
-            ]
-            .into_iter(),
-        )
+        db.insert_node_batch([
+            (node_1, node_data_1.clone()),
+            (node_2, node_data_2.clone()),
+            (node_3, node_data_3.clone()),
+            (node_4, node_data_4.clone()),
+        ])
         .expect("insert should succeed");
 
         let (edge_1, edge_data_1) = (Ulid(1), "-1->".to_string());
@@ -219,27 +213,27 @@ mod test {
 
         db.insert_edge(
             Triple {
-                sub: node_1.clone(),
-                pred: edge_1.clone(),
-                obj: node_2.clone(),
+                sub: node_1,
+                pred: edge_1,
+                obj: node_2,
             },
             edge_data_1.clone(),
         )
         .expect("insert edge should succeed");
         db.insert_edge(
             Triple {
-                sub: node_2.clone(),
-                pred: edge_2.clone(),
-                obj: node_3.clone(),
+                sub: node_2,
+                pred: edge_2,
+                obj: node_3,
             },
             edge_data_2.clone(),
         )
         .expect("insert edge should succeed");
         db.insert_edge(
             Triple {
-                sub: node_3.clone(),
-                pred: edge_3.clone(),
-                obj: node_4.clone(),
+                sub: node_3,
+                pred: edge_3,
+                obj: node_4,
             },
             edge_data_3.clone(),
         )
@@ -248,9 +242,9 @@ mod test {
         // Update one of the edges
         db.insert_edge(
             Triple {
-                sub: node_3.clone(),
-                pred: edge_3.clone(),
-                obj: node_4.clone(),
+                sub: node_3,
+                pred: edge_3,
+                obj: node_4,
             },
             edge_data_4.clone(),
         )
@@ -297,50 +291,44 @@ mod test {
         let (node_3, node_data_3) = (Ulid(3), "baz".to_string());
         let (node_4, node_data_4) = (Ulid(4), "quz".to_string());
 
-        db.insert_node_batch(
-            [
-                (node_1.clone(), node_data_1.clone()),
-                (node_2.clone(), node_data_2.clone()),
-                (node_3.clone(), node_data_3.clone()),
-                (node_4.clone(), node_data_4.clone()),
-            ]
-            .into_iter(),
-        )
+        db.insert_node_batch([
+            (node_1, node_data_1.clone()),
+            (node_2, node_data_2.clone()),
+            (node_3, node_data_3.clone()),
+            (node_4, node_data_4.clone()),
+        ])
         .expect("insert should succeed");
 
         let (edge_1, edge_data_1) = (Ulid(1), "-1->".to_string());
         let (edge_2, edge_data_2) = (Ulid(2), "-2->".to_string());
         let (edge_3, edge_data_3) = (Ulid(3), "-3->".to_string());
 
-        db.insert_edge_batch(
-            [
-                (
-                    Triple {
-                        sub: node_1.clone(),
-                        pred: edge_1.clone(),
-                        obj: node_2.clone(),
-                    },
-                    edge_data_1.clone(),
-                ),
-                (
-                    Triple {
-                        sub: node_2.clone(),
-                        pred: edge_2.clone(),
-                        obj: node_3.clone(),
-                    },
-                    edge_data_2.clone(),
-                ),
-                (
-                    Triple {
-                        sub: node_3.clone(),
-                        pred: edge_3.clone(),
-                        obj: node_4.clone(),
-                    },
-                    edge_data_3.clone(),
-                ),
-            ]
-            .into_iter(),
-        )
+        db.insert_edge_batch([
+            (
+                Triple {
+                    sub: node_1,
+                    pred: edge_1,
+                    obj: node_2,
+                },
+                edge_data_1.clone(),
+            ),
+            (
+                Triple {
+                    sub: node_2,
+                    pred: edge_2,
+                    obj: node_3,
+                },
+                edge_data_2.clone(),
+            ),
+            (
+                Triple {
+                    sub: node_3,
+                    pred: edge_3,
+                    obj: node_4,
+                },
+                edge_data_3.clone(),
+            ),
+        ])
         .expect("insert_edge_batch should work");
 
         assert_eq!(db.node_props.len(), 4);

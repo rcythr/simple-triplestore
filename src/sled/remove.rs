@@ -1,4 +1,7 @@
+use std::borrow::Borrow;
+
 use serde::{de::DeserializeOwned, Serialize};
+use ulid::Ulid;
 
 use crate::PropertiesType;
 use crate::TripleStoreRemove;
@@ -12,13 +15,13 @@ impl<
     > TripleStoreRemove<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn remove_node(&mut self, _node: &ulid::Ulid) -> Result<(), Error> {
+    fn remove_node(&mut self, _node: impl Borrow<Ulid>) -> Result<(), Error> {
         todo!()
     }
 
-    fn remove_node_batch(
+    fn remove_node_batch<I: IntoIterator<Item = ulid::Ulid>>(
         &mut self,
-        _nodes: impl Iterator<Item = ulid::Ulid>,
+        _nodes: I,
     ) -> Result<(), Self::Error> {
         todo!()
     }
@@ -27,9 +30,9 @@ impl<
         todo!()
     }
 
-    fn remove_edge_batch(
+    fn remove_edge_batch<I: IntoIterator<Item = crate::Triple>>(
         &mut self,
-        _triples: impl Iterator<Item = crate::Triple>,
+        _triples: I,
     ) -> Result<(), Error> {
         todo!()
     }

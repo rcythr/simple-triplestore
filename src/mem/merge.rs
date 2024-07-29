@@ -98,9 +98,9 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
         Ok(())
     }
 
-    fn merge_node_batch(
+    fn merge_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
         &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
+        nodes: I,
     ) -> Result<(), ()> {
         for (node, data) in nodes {
             self.merge_node(node, data)?;
@@ -121,9 +121,9 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
         Ok(())
     }
 
-    fn merge_edge_batch(
+    fn merge_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
         &mut self,
-        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+        triples: I,
     ) -> Result<(), ()> {
         for (triple, data) in triples {
             self.merge_edge(triple, data)?;
@@ -307,10 +307,10 @@ mod test {
         });
 
         let mut actual_graph_1_2 = graph_1.clone();
-        actual_graph_1_2.merge(graph_2.clone());
+        actual_graph_1_2.merge(graph_2.clone()).expect("ok");
 
         let mut actual_graph_2_1 = graph_2.clone();
-        actual_graph_2_1.merge(graph_1);
+        actual_graph_2_1.merge(graph_1).expect("ok");
 
         assert_eq!(actual_graph_1_2, expected_graph_1_2);
         assert_eq!(actual_graph_2_1, expected_graph_2_1);

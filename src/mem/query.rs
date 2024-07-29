@@ -8,7 +8,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
-    fn query(
+    fn run(
         &self,
         query: Query,
     ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
@@ -250,7 +250,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::NodeProps([config.node_1, config.node_2].into()))
+            .run(Query::NodeProps([config.node_1, config.node_2].into()))
             .expect("ok");
 
         assert_eq!(
@@ -271,7 +271,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::EdgeProps(
+            .run(Query::EdgeProps(
                 [
                     Triple {
                         sub: config.node_1,
@@ -320,7 +320,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::S([config.node_1, config.node_3].into()))
+            .run(Query::S([config.node_1, config.node_3].into()))
             .expect("ok");
 
         assert_eq!(
@@ -356,7 +356,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::SP([(config.node_0, config.edge_1)].into()))
+            .run(Query::SP([(config.node_0, config.edge_1)].into()))
             .expect("ok");
 
         assert_eq!(
@@ -381,7 +381,7 @@ mod test {
 
         let graph = build_graph(config.clone());
 
-        let query = graph.query(Query::P([config.edge_1].into())).expect("ok");
+        let query = graph.run(Query::P([config.edge_1].into())).expect("ok");
 
         assert_eq!(
             query.iter_edge_pos().collect::<HashSet<_>>(),
@@ -416,7 +416,7 @@ mod test {
         let graph = build_graph(config.clone());
 
         let query = graph
-            .query(Query::PO([(config.edge_1, config.node_2)].into()))
+            .run(Query::PO([(config.edge_1, config.node_2)].into()))
             .expect("ok");
 
         assert_eq!(
@@ -441,7 +441,7 @@ mod test {
 
         let graph = build_graph(config.clone());
 
-        let query = graph.query(Query::O([config.node_4].into())).expect("ok");
+        let query = graph.run(Query::O([config.node_4].into())).expect("ok");
 
         assert_eq!(
             query.iter_edge_osp().collect::<HashSet<_>>(),

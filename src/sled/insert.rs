@@ -21,9 +21,9 @@ impl<
         Ok(())
     }
 
-    fn insert_node_batch(
+    fn insert_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
         &mut self,
-        nodes: impl Iterator<Item = (Ulid, NodeProperties)>,
+        nodes: I,
     ) -> Result<(), Error> {
         let mut batch = sled::Batch::default();
         for (node, data) in nodes {
@@ -69,11 +69,12 @@ impl<
         Ok(())
     }
 
-    fn insert_edge_batch(
+    fn insert_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
         &mut self,
-        triples: impl Iterator<Item = (Triple, EdgeProperties)>,
+        triples: I,
     ) -> Result<(), Error> {
         let triples = triples
+            .into_iter()
             .map(|(triple, data)| {
                 let prop_key = Ulid::new();
                 let prop_key_bytes =
