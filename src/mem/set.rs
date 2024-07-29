@@ -1,4 +1,4 @@
-use crate::{prelude::*, PropertiesType, SetOpsError};
+use crate::{prelude::*, EdgeOrder, PropertiesType, SetOpsError};
 
 impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreSetOps<NodeProperties, EdgeProperties>
@@ -13,7 +13,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
         let mut result = MemTripleStore::new();
 
-        let (self_node_iter, self_edge_iter) = self.into_iters();
+        let (self_node_iter, self_edge_iter) = self.into_iter_nodes(EdgeOrder::SPO);
         for r in self_node_iter {
             let (id, props) = r.map_err(|e| SetOpsError::Left(e))?;
             result
@@ -27,7 +27,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
                 .map_err(|e| SetOpsError::Result(e))?;
         }
 
-        let (other_node_iter, other_edge_iter) = other.into_iters();
+        let (other_node_iter, other_edge_iter) = other.into_iter_nodes(EdgeOrder::SPO);
         for r in other_node_iter {
             let (id, props) = r.map_err(|e| SetOpsError::Right(e))?;
             result
@@ -50,11 +50,11 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
         let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
 
-        let (self_nodes, self_edges) = self.into_iters();
+        let (self_nodes, self_edges) = self.into_iter_nodes(EdgeOrder::SPO);
         let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
         let mut self_edges = self_edges.map(|r| r.map_err(|e| SetOpsError::Left(e)));
 
-        let (other_nodes, other_edges) = other.into_iters();
+        let (other_nodes, other_edges) = other.into_iter_nodes(EdgeOrder::SPO);
         let mut other_nodes = other_nodes.map(|r| r.map_err(|e| SetOpsError::Right(e)));
         let mut other_edges = other_edges.map(|r| r.map_err(|e| SetOpsError::Right(e)));
 
@@ -110,11 +110,11 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
         let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
 
-        let (self_nodes, self_edges) = self.into_iters();
+        let (self_nodes, self_edges) = self.into_iter_nodes(EdgeOrder::SPO);
         let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
         let mut self_edges = self_edges.map(|r| r.map_err(|e| SetOpsError::Left(e)));
 
-        let (other_nodes, other_edges) = other.into_iters();
+        let (other_nodes, other_edges) = other.into_iter_nodes(EdgeOrder::SPO);
         let mut other_nodes = other_nodes.map(|r| r.map_err(|e| SetOpsError::Right(e)));
         let mut other_edges = other_edges.map(|r| r.map_err(|e| SetOpsError::Right(e)));
 
@@ -179,21 +179,21 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-#[cfg(test)]
-mod test {
+// #[cfg(test)]
+// mod test {
 
-    #[test]
-    fn test_union() {
-        todo!()
-    }
+//     #[test]
+//     fn test_union() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_intersection() {
-        todo!()
-    }
+//     #[test]
+//     fn test_intersection() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_difference() {
-        todo!()
-    }
-}
+//     #[test]
+//     fn test_difference() {
+//         todo!()
+//     }
+// }

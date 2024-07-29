@@ -102,12 +102,12 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         Ok(())
     }
 
-    fn remove_node_batch<I: IntoIterator<Item = Ulid>>(
+    fn remove_node_batch<I: IntoIterator<Item = impl Borrow<Ulid>>>(
         &mut self,
         nodes: I,
     ) -> Result<(), Self::Error> {
         for node in nodes {
-            self.remove_node(&node)?;
+            self.remove_node(node)?;
         }
         Ok(())
     }
@@ -138,25 +138,25 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_remove_node() {
-        todo!()
-    }
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn test_remove_node() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_node_batch() {
-        todo!()
-    }
+//     #[test]
+//     fn test_remove_node_batch() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_edge() {
-        todo!()
-    }
+//     #[test]
+//     fn test_remove_edge() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_edge_batch() {
-        todo!()
-    }
-}
+//     #[test]
+//     fn test_remove_edge_batch() {
+//         todo!()
+//     }
+// }

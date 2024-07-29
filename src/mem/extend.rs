@@ -12,7 +12,7 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
         &mut self,
         other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
     ) -> Result<(), ExtendError<(), E>> {
-        let (other_nodes, other_edges) = other.into_iters();
+        let (other_nodes, other_edges) = other.into_iter_nodes(crate::EdgeOrder::SPO);
 
         for r in other_nodes {
             let (id, data) = r.map_err(|e| ExtendError::Right(e))?;
@@ -122,7 +122,7 @@ mod test {
 
         // We expect the result to be (3, "c") -("2")-> (1, "d") -("1")-> (2, "b")
         let node_data = left
-            .iter_node()
+            .iter_vertices()
             .map(|i| i.expect("success"))
             .collect::<Vec<_>>();
         assert_eq!(node_data.len(), 3);
@@ -131,7 +131,7 @@ mod test {
         assert!(node_data.contains(&(node_3, node_props_3)));
 
         let edge_data = left
-            .iter_edge_spo()
+            .iter_edges(crate::EdgeOrder::SPO)
             .map(|i| i.expect("success"))
             .collect::<Vec<_>>();
         assert_eq!(edge_data.len(), 2);

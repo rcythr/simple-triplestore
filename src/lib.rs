@@ -123,62 +123,65 @@ pub trait TripleStoreInsert<NodeProperties: PropertiesType, EdgeProperties: Prop
 pub trait TripleStoreRemove<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    /// Remove the
-    fn remove_node(&mut self, node: impl Borrow<Ulid>) -> Result<(), Self::Error>;
+    /// Insert the node with `id`.
+    fn remove_node(&mut self, id: impl Borrow<Ulid>) -> Result<(), Self::Error>;
 
-    ///
-    fn remove_node_batch<I: IntoIterator<Item = Ulid>>(
+    /// Insert the nodes with the given `ids`.
+    fn remove_node_batch<I: IntoIterator<Item = impl Borrow<Ulid>>>(
         &mut self,
-        nodes: I,
+        ids: I,
     ) -> Result<(), Self::Error>;
 
-    ///
+    /// Insert the node with `triple`.
     fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
 
-    ///
+    /// Insert the nodes with the given `triples`.
     fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
         &mut self,
         triples: I,
     ) -> Result<(), Self::Error>;
 }
 
+pub enum EdgeOrder {
+    SPO,
+    POS,
+    OSP,
+}
+
+impl Default for EdgeOrder {
+    fn default() -> Self {
+        Self::SPO
+    }
+}
+
 // Iteration functions which do not consume the TripleStore.
 pub trait TripleStoreIter<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>:
     TripleStoreError
 {
-    /// Iterate over the edges in the triplestore
-    fn iter_spo<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
+    //
+    fn iter_nodes(
+        &self,
+        order: EdgeOrder,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    );
 
-    ///
-    fn iter_pos<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
-
-    ///
-    fn iter_osp<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
-
-    ///
-    fn iter_node<'a>(
+    /// Iterate over vertices in the triplestore.
+    fn iter_vertices<'a>(
         &'a self,
     ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> + 'a;
 
-    ///
-    fn iter_edge_spo<'a>(
+    /// Iterate over the edges in the triplestore, fetching node properties for each subject and object.
+    fn iter_edges_with_props<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
 
-    ///
-    fn iter_edge_pos<'a>(
+    /// Iterate over the edges in the triplestore
+    fn iter_edges<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
-
-    ///
-    fn iter_edge_osp<'a>(
-        &'a self,
+        order: EdgeOrder,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
 }
 
@@ -186,44 +189,29 @@ pub trait TripleStoreIntoIter<NodeProperties: PropertiesType, EdgeProperties: Pr
     TripleStoreError
 {
     //
-    fn into_iters(
+    fn into_iter_nodes(
         self,
+        order: EdgeOrder,
     ) -> (
         impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
         impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
     );
 
     ///
-    fn into_iter_spo(
+    fn into_iter_vertices(
         self,
+    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>;
+
+    ///
+    fn into_iter_edges_with_props(
+        self,
+        order: EdgeOrder,
     ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
 
     ///
-    fn into_iter_pos(
+    fn into_iter_edges(
         self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
-
-    ///
-    fn into_iter_osp(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
-
-    ///
-    fn into_iter_node(self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>;
-
-    ///
-    fn into_iter_edge_spo(
-        self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
-
-    ///
-    fn into_iter_edge_pos(
-        self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
-
-    ///
-    fn into_iter_edge_osp(
-        self,
+        order: EdgeOrder,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
 }
 

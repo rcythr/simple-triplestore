@@ -19,7 +19,7 @@ impl<
         todo!()
     }
 
-    fn remove_node_batch<I: IntoIterator<Item = ulid::Ulid>>(
+    fn remove_node_batch<I: IntoIterator<Item = impl Borrow<ulid::Ulid>>>(
         &mut self,
         _nodes: I,
     ) -> Result<(), Self::Error> {
@@ -38,25 +38,25 @@ impl<
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_remove_node() {
-        todo!()
-    }
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn test_remove_node() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_node_batch() {
-        todo!()
-    }
+//     #[test]
+//     fn test_remove_node_batch() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_edge() {
-        todo!()
-    }
+//     #[test]
+//     fn test_remove_edge() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_remove_edge_batch() {
-        todo!()
-    }
-}
+//     #[test]
+//     fn test_remove_edge_batch() {
+//         todo!()
+//     }
+// }

@@ -36,7 +36,7 @@ impl<NodeProperties: PropertiesType + Mergeable, EdgeProperties: PropertiesType 
         &mut self,
         other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
     ) -> Result<(), MergeError<Self::Error, E>> {
-        let (other_nodes, other_edges) = other.into_iters();
+        let (other_nodes, other_edges) = other.into_iter_nodes(crate::EdgeOrder::SPO);
 
         for r in other_nodes {
             let (id, data) = r.map_err(|e| MergeError::Right(e))?;

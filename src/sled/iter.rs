@@ -2,6 +2,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use sled::IVec;
 use ulid::Ulid;
 
+use crate::EdgeOrder;
 use crate::PropertiesType;
 use crate::PropsTriple;
 use crate::Triple;
@@ -62,46 +63,17 @@ impl<
     > TripleStoreIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn iter_spo<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Error>> + 'a {
-        self.spo_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
+    fn iter_nodes(
+        &self,
+        order: EdgeOrder,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    ) {
+        (self.iter_vertices(), self.iter_edges(order))
     }
 
-    fn iter_pos<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Error>> + 'a {
-        self.pos_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn iter_osp<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Error>> + 'a {
-        self.osp_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn iter_node<'a>(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Error>> {
+    fn iter_vertices<'a>(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Error>> {
         self.node_props.iter().map(|r| match r {
             Ok((k, v)) => {
                 let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
@@ -112,57 +84,78 @@ impl<
         })
     }
 
-    fn iter_edge_spo<'a>(
+    fn iter_edges_with_props<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
-        self.spo_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-
-                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
-                } else {
-                    Err(Error::MissingPropertyData)
-                }
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Error>> + 'a {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(self.spo_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::POS => Box::new(self.pos_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::OSP => Box::new(self.osp_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+        };
+        edges.map(|r| r.and_then(|(k, v)| self.iter_impl(k, v)))
     }
 
-    fn iter_edge_pos<'a>(
+    fn iter_edges<'a>(
         &'a self,
+        order: EdgeOrder,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
-        self.pos_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(self.spo_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::POS => Box::new(self.pos_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::OSP => Box::new(self.osp_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+        };
 
+        edges.map(|r| {
+            r.and_then(|(k, v)| {
                 if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
+                    Ok((k, pred_data))
                 } else {
                     Err(Error::MissingPropertyData)
                 }
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn iter_edge_osp<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Error>> + 'a {
-        self.osp_data.iter().map(|r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-
-                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
-                } else {
-                    Err(Error::MissingPropertyData)
-                }
-            }
-            Err(e) => Err(Error::SledError(e)),
+            })
         })
     }
 }
@@ -173,8 +166,9 @@ impl<
     > TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn into_iters(
+    fn into_iter_nodes(
         self,
+        order: EdgeOrder,
     ) -> (
         impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
         impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
@@ -187,65 +181,58 @@ impl<
             }
             Err(e) => Err(Error::SledError(e)),
         });
-        let edge_iter = self.spo_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
 
-                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(self.spo_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::POS => Box::new(self.pos_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::OSP => Box::new(self.osp_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+        };
+
+        let edge_iter = edges.map(move |r| {
+            r.and_then(|(k, v)| {
+                let pred_data = self
+                    .edge_props
+                    .get(v)
+                    .map_err(|e| Error::SledError(e))?
+                    .map(|data| {
+                        bincode::deserialize(&data).map_err(|e| Error::SerializationError(e))
+                    })
+                    .transpose();
+
+                if let Some(pred_data) = pred_data? {
+                    Ok((k, pred_data))
                 } else {
                     Err(Error::MissingPropertyData)
                 }
-            }
-            Err(e) => Err(Error::SledError(e)),
+            })
         });
         (node_iter, edge_iter)
     }
 
-    fn into_iter_spo(
+    fn into_iter_vertices(
         self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>
-    {
-        self.spo_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn into_iter_pos(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>
-    {
-        self.pos_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn into_iter_osp(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>
-    {
-        self.osp_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-                self.iter_impl(triple, v)
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn into_iter_node(self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> {
+    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> {
         self.node_props.into_iter().map(|r| match r {
             Ok((k, v)) => {
                 let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
@@ -256,135 +243,157 @@ impl<
         })
     }
 
-    fn into_iter_edge_spo(
+    fn into_iter_edges_with_props(
         self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> {
-        self.spo_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-
-                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
-                } else {
-                    Err(Error::MissingPropertyData)
-                }
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>
+    {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(self.spo_data.into_iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::POS => Box::new(self.pos_data.into_iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::OSP => Box::new(self.osp_data.into_iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+        };
+        edges.map(move |r| r.and_then(|(k, v)| self.iter_impl(k, v)))
     }
 
-    fn into_iter_edge_pos(
+    fn into_iter_edges(
         self,
+        order: EdgeOrder,
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> {
-        self.pos_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(self.spo_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_spo(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::POS => Box::new(self.pos_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_pos(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+            EdgeOrder::OSP => Box::new(self.osp_data.iter().map(|r| {
+                r.map_err(|e| Error::SledError(e)).and_then(|(k, v)| {
+                    Ok((
+                        Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?),
+                        v,
+                    ))
+                })
+            })),
+        };
 
+        edges.map(move |r| {
+            r.and_then(|(k, v)| {
                 if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
+                    Ok((k, pred_data))
                 } else {
                     Err(Error::MissingPropertyData)
                 }
-            }
-            Err(e) => Err(Error::SledError(e)),
-        })
-    }
-
-    fn into_iter_edge_osp(
-        self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> {
-        self.osp_data.into_iter().map(move |r| match r {
-            Ok((k, v)) => {
-                let triple =
-                    Triple::decode_osp(&k[..].try_into().map_err(|_| Error::KeySizeError)?);
-
-                if let Some(pred_data) = self.get_edge_data_internal(&v)? {
-                    Ok((triple, pred_data))
-                } else {
-                    Err(Error::MissingPropertyData)
-                }
-            }
-            Err(e) => Err(Error::SledError(e)),
+            })
         })
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test_iter_spo() {
-        todo!()
-    }
+// #[cfg(test)]
+// mod test {
+//     #[test]
+//     fn test_iter_spo() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_pos() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_pos() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_osp() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_osp() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_node() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_node() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_edge_spo() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_edge_spo() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_edge_pos() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_edge_pos() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_iter_edge_osp() {
-        todo!()
-    }
+//     #[test]
+//     fn test_iter_edge_osp() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iters() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iters() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_spo() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_spo() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_pos() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_pos() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_osp() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_osp() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_node() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_node() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_edge_spo() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_edge_spo() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_edge_pos() {
-        todo!()
-    }
+//     #[test]
+//     fn test_into_iter_edge_pos() {
+//         todo!()
+//     }
 
-    #[test]
-    fn test_into_iter_edge_osp() {
-        todo!()
-    }
-}
+//     #[test]
+//     fn test_into_iter_edge_osp() {
+//         todo!()
+//     }
+// }

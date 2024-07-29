@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use ulid::Ulid;
 
-use crate::{PropertiesType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
+use crate::{EdgeOrder, PropertiesType, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter};
 
 use super::MemTripleStore;
 
@@ -34,70 +34,77 @@ impl<NodeProperties: PropertiesType, EdgeProperties: PropertiesType>
     TripleStoreIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn iter_spo<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
-        self.spo_data.iter().filter_map(|(k, v)| {
-            let triple = Triple::decode_spo(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
+    fn iter_nodes(
+        &self,
+        order: EdgeOrder,
+    ) -> (
+        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
+        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
+    ) {
+        (self.iter_vertices(), self.iter_edges(order))
     }
 
-    fn iter_pos<'a>(
+    fn iter_vertices<'a>(
         &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
-        self.pos_data.iter().filter_map(|(k, v)| {
-            let triple = Triple::decode_pos(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
-    }
-
-    fn iter_osp<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
-        self.osp_data.iter().filter_map(|(k, v)| {
-            let triple = Triple::decode_osp(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
-    }
-
-    fn iter_edge_spo<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
-        self.spo_data
-            .iter()
-            .filter_map(|(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_spo(&k), v.clone()))),
-                None => None,
-            })
-    }
-
-    fn iter_edge_pos<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
-        self.pos_data
-            .iter()
-            .filter_map(|(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_pos(&k), v.clone()))),
-                None => None,
-            })
-    }
-
-    fn iter_edge_osp<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
-        self.osp_data
-            .iter()
-            .filter_map(|(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_osp(&k), v.clone()))),
-                None => None,
-            })
-    }
-
-    fn iter_node<'a>(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> + 'a {
+    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> + 'a {
         self.node_props
             .iter()
             .map(|(id, props)| Ok((id.clone(), props.clone())))
+    }
+
+    fn iter_edges_with_props<'a>(
+        &'a self,
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> + 'a {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(
+                self.spo_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_spo(k), v)),
+            ),
+            EdgeOrder::POS => Box::new(
+                self.pos_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_pos(k), v)),
+            ),
+            EdgeOrder::OSP => Box::new(
+                self.osp_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_osp(k), v)),
+            ),
+        };
+
+        edges.filter_map(|(k, v)| {
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, k, &v)
+        })
+    }
+
+    fn iter_edges<'a>(
+        &'a self,
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> + 'a {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(
+                self.spo_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_spo(k), v)),
+            ),
+            EdgeOrder::POS => Box::new(
+                self.pos_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_pos(k), v)),
+            ),
+            EdgeOrder::OSP => Box::new(
+                self.osp_data
+                    .iter()
+                    .map(|(k, v)| (Triple::decode_osp(k), v)),
+            ),
+        };
+
+        edges.filter_map(|(k, v)| match self.edge_props.get(&v) {
+            Some(v) => Some(Ok((k, v.clone()))),
+            None => None,
+        })
     }
 }
 
@@ -105,79 +112,98 @@ impl<NodeProperties: PropertiesType + PartialEq, EdgeProperties: PropertiesType 
     TripleStoreIntoIter<NodeProperties, EdgeProperties>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
-    fn into_iters(
+    fn into_iter_nodes(
         self,
+        order: EdgeOrder,
     ) -> (
         impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
         impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
     ) {
         let node_iter = self.node_props.into_iter().map(|o| Ok(o));
-        let edge_iter =
-            self.spo_data
-                .into_iter()
-                .filter_map(move |(k, v)| match self.edge_props.get(&v) {
-                    Some(v) => Some(Ok((Triple::decode_spo(&k), v.clone()))),
-                    None => None,
-                });
+        let edge_iter = {
+            let edges: Box<dyn Iterator<Item = _>> = match order {
+                EdgeOrder::SPO => Box::new(
+                    self.spo_data
+                        .into_iter()
+                        .map(|(k, v)| (Triple::decode_spo(&k), v)),
+                ),
+                EdgeOrder::POS => Box::new(
+                    self.pos_data
+                        .into_iter()
+                        .map(|(k, v)| (Triple::decode_pos(&k), v)),
+                ),
+                EdgeOrder::OSP => Box::new(
+                    self.osp_data
+                        .into_iter()
+                        .map(|(k, v)| (Triple::decode_osp(&k), v)),
+                ),
+            };
+
+            edges.filter_map(move |(k, v)| match self.edge_props.get(&v) {
+                Some(v) => Some(Ok((k, v.clone()))),
+                None => None,
+            })
+        };
         (node_iter, edge_iter)
     }
 
-    fn into_iter_spo(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
-        self.spo_data.into_iter().filter_map(move |(k, v)| {
-            let triple = Triple::decode_spo(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
-    }
-
-    fn into_iter_pos(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
-        self.pos_data.into_iter().filter_map(move |(k, v)| {
-            let triple = Triple::decode_pos(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
-    }
-
-    fn into_iter_osp(
-        self,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
-        self.osp_data.into_iter().filter_map(move |(k, v)| {
-            let triple = Triple::decode_osp(&k);
-            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, triple, &v)
-        })
-    }
-
-    fn into_iter_node(self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> {
+    fn into_iter_vertices(self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), ()>> {
         self.node_props.into_iter().map(|o| Ok(o))
     }
 
-    fn into_iter_edge_spo(self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> {
-        self.spo_data
-            .into_iter()
-            .filter_map(move |(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_spo(&k), v.clone()))),
-                None => None,
-            })
+    fn into_iter_edges_with_props(
+        self,
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, ()>> {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(
+                self.spo_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_spo(&k), v)),
+            ),
+            EdgeOrder::POS => Box::new(
+                self.pos_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_pos(&k), v)),
+            ),
+            EdgeOrder::OSP => Box::new(
+                self.osp_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_osp(&k), v)),
+            ),
+        };
+
+        edges.filter_map(move |(k, v)| {
+            MemTripleStore::iter_impl(&self.node_props, &self.edge_props, k, &v)
+        })
     }
 
-    fn into_iter_edge_pos(self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> {
-        self.pos_data
-            .into_iter()
-            .filter_map(move |(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_pos(&k), v.clone()))),
-                None => None,
-            })
-    }
+    fn into_iter_edges(
+        self,
+        order: EdgeOrder,
+    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> {
+        let edges: Box<dyn Iterator<Item = _>> = match order {
+            EdgeOrder::SPO => Box::new(
+                self.spo_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_spo(&k), v)),
+            ),
+            EdgeOrder::POS => Box::new(
+                self.pos_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_pos(&k), v)),
+            ),
+            EdgeOrder::OSP => Box::new(
+                self.osp_data
+                    .into_iter()
+                    .map(|(k, v)| (Triple::decode_osp(&k), v)),
+            ),
+        };
 
-    fn into_iter_edge_osp(self) -> impl Iterator<Item = Result<(Triple, EdgeProperties), ()>> {
-        self.osp_data
-            .into_iter()
-            .filter_map(move |(k, v)| match self.edge_props.get(&v) {
-                Some(v) => Some(Ok((Triple::decode_osp(&k), v.clone()))),
-                None => None,
-            })
+        edges.filter_map(move |(k, v)| match self.edge_props.get(&v) {
+            Some(v) => Some(Ok((k, v.clone()))),
+            None => None,
+        })
     }
 }
 
@@ -299,7 +325,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_spo()
+                .iter_edges_with_props(crate::EdgeOrder::SPO)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -330,7 +356,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_pos()
+                .iter_edges_with_props(crate::EdgeOrder::POS)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -361,7 +387,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_osp()
+                .iter_edges_with_props(crate::EdgeOrder::OSP)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -392,7 +418,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_edge_spo()
+                .iter_edges(crate::EdgeOrder::SPO)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -432,7 +458,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_edge_pos()
+                .iter_edges(crate::EdgeOrder::POS)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -472,7 +498,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .iter_edge_osp()
+                .iter_edges(crate::EdgeOrder::OSP)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -512,7 +538,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_node()
+                .iter_vertices()
                 .map(|r| r.unwrap())
                 .collect::<Vec<_>>(),
             [
@@ -532,7 +558,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_spo()
+                .into_iter_edges_with_props(crate::EdgeOrder::SPO)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -563,7 +589,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_pos()
+                .into_iter_edges_with_props(crate::EdgeOrder::POS)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -594,7 +620,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_osp()
+                .into_iter_edges_with_props(crate::EdgeOrder::OSP)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -625,7 +651,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_edge_spo()
+                .into_iter_edges(crate::EdgeOrder::SPO)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -665,7 +691,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_edge_pos()
+                .into_iter_edges(crate::EdgeOrder::POS)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -705,7 +731,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_edge_osp()
+                .into_iter_edges(crate::EdgeOrder::OSP)
                 .map(|r| r.expect("success"))
                 .collect::<Vec<_>>(),
             [
@@ -745,7 +771,7 @@ mod test {
         let graph = build_graph(config.clone());
         assert_eq!(
             graph
-                .into_iter_node()
+                .into_iter_vertices()
                 .map(|r| r.unwrap())
                 .collect::<Vec<_>>(),
             [

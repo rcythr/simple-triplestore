@@ -254,14 +254,20 @@ mod test {
             .expect("ok");
 
         assert_eq!(
-            query.iter_node().collect::<HashSet<_>>(),
+            query.iter_vertices().collect::<HashSet<_>>(),
             [
                 Ok((config.node_1, config.node_props_1)),
                 Ok((config.node_2, config.node_props_2))
             ]
             .into()
         );
-        assert_eq!(query.iter_edge_spo().collect::<Vec<_>>().len(), 0);
+        assert_eq!(
+            query
+                .iter_edges(crate::EdgeOrder::SPO)
+                .collect::<Vec<_>>()
+                .len(),
+            0
+        );
     }
 
     #[test]
@@ -289,7 +295,9 @@ mod test {
             .expect("ok");
 
         assert_eq!(
-            query.iter_edge_spo().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::SPO)
+                .collect::<HashSet<_>>(),
             [
                 Ok((
                     Triple {
@@ -310,7 +318,7 @@ mod test {
             ]
             .into()
         );
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -324,7 +332,9 @@ mod test {
             .expect("ok");
 
         assert_eq!(
-            query.iter_edge_spo().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::SPO)
+                .collect::<HashSet<_>>(),
             [
                 Ok((
                     Triple {
@@ -346,7 +356,7 @@ mod test {
             .into()
         );
 
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -360,7 +370,9 @@ mod test {
             .expect("ok");
 
         assert_eq!(
-            query.iter_edge_spo().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::SPO)
+                .collect::<HashSet<_>>(),
             [Ok((
                 Triple {
                     sub: config.node_0,
@@ -372,7 +384,7 @@ mod test {
             .into()
         );
 
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -384,7 +396,9 @@ mod test {
         let query = graph.run(Query::P([config.edge_1].into())).expect("ok");
 
         assert_eq!(
-            query.iter_edge_pos().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::POS)
+                .collect::<HashSet<_>>(),
             [
                 Ok((
                     Triple {
@@ -406,7 +420,7 @@ mod test {
             .into()
         );
 
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -420,7 +434,9 @@ mod test {
             .expect("ok");
 
         assert_eq!(
-            query.iter_edge_pos().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::POS)
+                .collect::<HashSet<_>>(),
             [Ok((
                 Triple {
                     sub: config.node_1,
@@ -432,7 +448,7 @@ mod test {
             .into()
         );
 
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 
     #[test]
@@ -444,7 +460,9 @@ mod test {
         let query = graph.run(Query::O([config.node_4].into())).expect("ok");
 
         assert_eq!(
-            query.iter_edge_osp().collect::<HashSet<_>>(),
+            query
+                .iter_edges(crate::EdgeOrder::OSP)
+                .collect::<HashSet<_>>(),
             [
                 Ok((
                     Triple {
@@ -466,6 +484,34 @@ mod test {
             .into()
         );
 
-        assert_eq!(query.iter_node().collect::<Vec<_>>().len(), 0);
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
+    }
+
+    #[test]
+    fn test_query_os() {
+        let config = Config::default();
+
+        let graph = build_graph(config.clone());
+
+        let query = graph
+            .run(Query::SO([(config.node_2, config.node_4)].into()))
+            .expect("ok");
+
+        assert_eq!(
+            query
+                .iter_edges(crate::EdgeOrder::OSP)
+                .collect::<HashSet<_>>(),
+            [Ok((
+                Triple {
+                    sub: config.node_2,
+                    pred: config.edge_2,
+                    obj: config.node_4,
+                },
+                config.edge_props_2,
+            ),)]
+            .into()
+        );
+
+        assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
     }
 }
