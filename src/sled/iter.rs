@@ -11,12 +11,19 @@ use crate::TripleStoreIter;
 
 use super::Error;
 use super::SledTripleStore;
+
+fn decode_ulid(id: IVec) -> Result<Ulid, Error> {
+    Ok(Ulid(u128::from_be_bytes(
+        id[0..16].try_into().map_err(|_| Error::KeySizeError)?,
+    )))
+}
+
 impl<
         NodeProperties: PropertyType + Serialize + DeserializeOwned,
         EdgeProperties: PropertyType + Serialize + DeserializeOwned,
     > SledTripleStore<NodeProperties, EdgeProperties>
 {
-    fn get_node_data_internal(&self, id: &Vec<u8>) -> Result<Option<NodeProperties>, Error> {
+    fn get_node_data_internal(&self, id: &[u8; 16]) -> Result<Option<NodeProperties>, Error> {
         self.node_props
             .get(id)
             .map_err(|e| Error::SledError(e))?
@@ -25,9 +32,7 @@ impl<
     }
 
     fn get_node_data_by_id(&self, id: &u128) -> Result<Option<NodeProperties>, Error> {
-        self.get_node_data_internal(
-            &bincode::serialize(id).map_err(|e| Error::SerializationError(e))?,
-        )
+        self.get_node_data_internal(&id.to_be_bytes())
     }
 
     fn get_edge_data_internal(&self, id: &sled::IVec) -> Result<Option<EdgeProperties>, Error> {
@@ -68,8 +73,7 @@ impl<
             .iter()
             .map(|r| match r {
                 Ok((k, _)) => {
-                    let k =
-                        Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                    let k = decode_ulid(k)?;
                     Ok(k)
                 }
                 Err(e) => Err(Error::SledError(e)),
@@ -91,7 +95,7 @@ impl<
     fn iter_vertices<'a>(&'a self) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Error>> {
         self.node_props.iter().map(|r| match r {
             Ok((k, v)) => {
-                let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                let k = decode_ulid(k)?;
                 let v = bincode::deserialize(&v).map_err(|e| Error::SerializationError(e))?;
                 Ok((k, v))
             }
@@ -190,7 +194,7 @@ impl<
     ) {
         let node_iter = self.node_props.into_iter().map(|r| match r {
             Ok((k, v)) => {
-                let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                let k = decode_ulid(k)?;
                 let v = bincode::deserialize(&v).map_err(|e| Error::SerializationError(e))?;
                 Ok((k, v))
             }
@@ -250,7 +254,7 @@ impl<
     ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> {
         self.node_props.into_iter().map(|r| match r {
             Ok((k, v)) => {
-                let k = Ulid(bincode::deserialize(&k).map_err(|e| Error::SerializationError(e))?);
+                let k = decode_ulid(k)?;
                 let v = bincode::deserialize(&v).map_err(|e| Error::SerializationError(e))?;
                 Ok((k, v))
             }
@@ -335,80 +339,105 @@ impl<
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_iter_spo() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use crate::prelude::*;
 
-//     #[test]
-//     fn test_iter_pos() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_spo() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_spo(sled_db);
+    }
 
-//     #[test]
-//     fn test_iter_osp() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_pos() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_pos(sled_db);
+    }
 
-//     #[test]
-//     fn test_iter_node() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_osp() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_osp(sled_db);
+    }
 
-//     #[test]
-//     fn test_iter_edge_spo() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_edge_spo() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_edge_spo(sled_db);
+    }
 
-//     #[test]
-//     fn test_iter_edge_pos() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_edge_pos() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_edge_pos(sled_db);
+    }
 
-//     #[test]
-//     fn test_iter_edge_osp() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_edge_osp() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_edge_osp(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iters() {
-//         todo!()
-//     }
+    #[test]
+    fn test_iter_node() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_iter_node(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_spo() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_spo() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_spo(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_pos() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_pos() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_pos(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_osp() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_osp() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_osp(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_node() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_edge_spo() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_edge_spo(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_edge_spo() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_edge_pos() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_edge_pos(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_edge_pos() {
-//         todo!()
-//     }
+    #[test]
+    fn test_into_iter_edge_osp() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_edge_osp(sled_db);
+    }
 
-//     #[test]
-//     fn test_into_iter_edge_osp() {
-//         todo!()
-//     }
-// }
+    #[test]
+    fn test_into_iter_node() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::iter::test_into_iter_node(sled_db);
+    }
+}

@@ -13,7 +13,7 @@ impl<
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
     fn insert_node(&mut self, node: Ulid, props: NodeProperties) -> Result<(), Error> {
-        let key_bytes = bincode::serialize(&node.0).map_err(|e| Error::SerializationError(e))?;
+        let key_bytes = &node.0.to_be_bytes();
         let data_bytes = bincode::serialize(&props).map_err(|e| Error::SerializationError(e))?;
         self.node_props
             .insert(key_bytes, data_bytes)
@@ -27,8 +27,7 @@ impl<
     ) -> Result<(), Error> {
         let mut batch = sled::Batch::default();
         for (node, data) in nodes {
-            let key_bytes =
-                bincode::serialize(&node.0).map_err(|e| Error::SerializationError(e))?;
+            let key_bytes = &node.0.to_be_bytes();
             let data_bytes = bincode::serialize(&data).map_err(|e| Error::SerializationError(e))?;
             batch.insert(key_bytes, data_bytes);
         }
@@ -40,8 +39,7 @@ impl<
 
     fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Error> {
         let prop_key = Ulid::new();
-        let prop_key_bytes =
-            bincode::serialize(&prop_key.0).map_err(|e| Error::SerializationError(e))?;
+        let prop_key_bytes = &prop_key.0.to_be_bytes();
 
         let data_bytes = bincode::serialize(&props).map_err(|e| Error::SerializationError(e))?;
 
@@ -52,13 +50,10 @@ impl<
             &self.osp_data,
         )
             .transaction(move |(edge_props, spo_data, pos_data, osp_data)| {
-                edge_props.insert(prop_key_bytes.clone(), data_bytes.clone())?;
-
-                spo_data.insert(triple.encode_spo().as_slice(), prop_key_bytes.clone())?;
-
-                pos_data.insert(triple.encode_pos().as_slice(), prop_key_bytes.clone())?;
-
-                osp_data.insert(triple.encode_osp().as_slice(), prop_key_bytes.clone())?;
+                edge_props.insert(prop_key_bytes.as_slice(), data_bytes.as_slice())?;
+                spo_data.insert(triple.encode_spo().as_slice(), prop_key_bytes.as_slice())?;
+                pos_data.insert(triple.encode_pos().as_slice(), prop_key_bytes.as_slice())?;
+                osp_data.insert(triple.encode_osp().as_slice(), prop_key_bytes.as_slice())?;
                 Ok(())
             })
             .map_err(|e| match e {
@@ -77,8 +72,7 @@ impl<
             .into_iter()
             .map(|(triple, data)| {
                 let prop_key = Ulid::new();
-                let prop_key_bytes =
-                    bincode::serialize(&prop_key.0).map_err(|e| Error::SerializationError(e))?;
+                let prop_key_bytes = prop_key.0.to_be_bytes();
                 let data_bytes =
                     bincode::serialize(&data).map_err(|e| Error::SerializationError(e))?;
                 Ok((triple, prop_key_bytes, data_bytes))
@@ -93,10 +87,10 @@ impl<
         )
             .transaction(move |(edge_props, spo_data, pos_data, osp_data)| {
                 for (triple, prop_key_bytes, data_bytes) in triples.iter() {
-                    edge_props.insert(prop_key_bytes.clone(), data_bytes.clone())?;
-                    spo_data.insert(triple.encode_spo().as_slice(), prop_key_bytes.clone())?;
-                    pos_data.insert(triple.encode_pos().as_slice(), prop_key_bytes.clone())?;
-                    osp_data.insert(triple.encode_osp().as_slice(), prop_key_bytes.clone())?;
+                    edge_props.insert(prop_key_bytes.as_slice(), data_bytes.clone())?;
+                    spo_data.insert(triple.encode_spo().as_slice(), prop_key_bytes.as_slice())?;
+                    pos_data.insert(triple.encode_pos().as_slice(), prop_key_bytes.as_slice())?;
+                    osp_data.insert(triple.encode_osp().as_slice(), prop_key_bytes.as_slice())?;
                 }
                 Ok(())
             })
@@ -109,25 +103,35 @@ impl<
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_insert_node() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use crate::SledTripleStore;
 
-//     #[test]
-//     fn test_insert_node_batch() {
-//         todo!()
-//     }
+    #[test]
+    fn test_insert_node() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::insert::test_insert_node(sled_db);
+    }
 
-//     #[test]
-//     fn test_insert_edge() {
-//         todo!()
-//     }
+    #[test]
+    fn test_insert_node_batch() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::insert::test_insert_node_batch(sled_db);
+    }
 
-//     #[test]
-//     fn test_insert_edge_batch() {
-//         todo!()
-//     }
-// }
+    #[test]
+    fn test_insert_edge() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::insert::test_insert_edge(sled_db);
+    }
+
+    #[test]
+    fn test_insert_edge_batch() {
+        let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+        let sled_db = SledTripleStore::new(&db).expect("ok");
+        crate::conformance::insert::test_insert_edge_batch(sled_db);
+    }
+}

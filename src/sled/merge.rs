@@ -42,30 +42,62 @@ impl<
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_merge() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use super::SledTripleStore;
 
-//     #[test]
-//     fn test_merge_node() {
-//         todo!()
-//     }
+    //     #[test]
+    //     fn test_merge() {
+    //         let mut temp_dirs = Vec::new();
+    //         crate::conformance::merge::test_merge(|| {
+    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //             let sled_db = SledTripleStore::new(&db).expect("ok");
+    //             temp_dirs.push((temp_dir, db));
+    //             sled_db
+    //         });
+    //     }
 
-//     #[test]
-//     fn test_merge_node_batch() {
-//         todo!()
-//     }
+    //     #[test]
+    //     fn test_merge_node() {
+    //         let mut temp_dirs = Vec::new();
+    //         crate::conformance::merge::test_merge_node(|| {
+    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //             let sled_db = SledTripleStore::new(&db).expect("ok");
+    //             temp_dirs.push((temp_dir, db));
+    //             sled_db
+    //         });
+    //     }
 
-//     #[test]
-//     fn test_merge_edge() {
-//         todo!()
-//     }
+    //     #[test]
+    //     fn test_merge_node_batch() {
+    //         let mut temp_dirs = Vec::new();
+    //         crate::conformance::merge::test_merge_node_batch(|| {
+    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //             let sled_db = SledTripleStore::new(&db).expect("ok");
+    //             temp_dirs.push((temp_dir, db));
+    //             sled_db
+    //         });
+    //     }
 
-//     #[test]
-//     fn test_merge_edge_batch() {
-//         todo!()
-//     }
-// }
+    //     #[test]
+    //     fn test_merge_edge() {
+    //         let mut temp_dirs = Vec::new();
+    //         crate::conformance::merge::test_merge_edge(|| {
+    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //             let sled_db = SledTripleStore::new(&db).expect("ok");
+    //             temp_dirs.push((temp_dir, db));
+    //             sled_db
+    //         });
+    //     }
+
+    //     #[test]
+    //     fn test_merge_edge_batch() {
+    //         let mut temp_dirs = Vec::new();
+    //         crate::conformance::merge::test_merge_edge_batch(|| {
+    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //             let sled_db = SledTripleStore::new(&db).expect("ok");
+    //             temp_dirs.push((temp_dir, db));
+    //             sled_db
+    //         });
+    //     }
+}

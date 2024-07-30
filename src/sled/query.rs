@@ -25,40 +25,63 @@ impl<
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_query_node_props() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use crate::prelude::*;
 
-//     #[test]
-//     fn test_query_edge_props() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_query_node_props() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_node_props(sled_db);
+    // }
 
-//     #[test]
-//     fn test_query_s() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_query_edge_props() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_edge_props(sled_db);
+    // }
 
-//     #[test]
-//     fn test_query_sp() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_query_s() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_s(sled_db);
+    // }
 
-//     #[test]
-//     fn test_query_p() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_query_sp() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_sp(sled_db);
+    // }
 
-//     #[test]
-//     fn test_query_po() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_query_p() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_p(sled_db);
+    // }
 
-//     #[test]
-//     fn test_query_o() {
-//         todo!()
-//     }
-// }
+    // #[test]
+    // fn test_query_po() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_po(sled_db);
+    // }
+
+    // #[test]
+    // fn test_query_o() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_o(sled_db);
+    // }
+
+    // #[test]
+    // fn test_query_os() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::query::test_query_os(sled_db);
+    // }
+}

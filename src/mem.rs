@@ -155,7 +155,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
             }
 
             // If we've seen this before (perhaps on a different ordering), it's true.
-            if cached_comparisons.contains(&(self_edge_prop_id, self_edge_prop_id)) {
+            if cached_comparisons.contains(&(self_edge_prop_id, other_edge_prop_id)) {
                 return true;
             }
 
@@ -187,25 +187,6 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
             }
         }
 
-        // POS
-        for edge_pair in self.pos_data.iter().zip(other.pos_data.iter()) {
-            if !check_edge(edge_pair) {
-                return false;
-            }
-        }
-
-        // OSP
-        for edge_pair in self.osp_data.iter().zip(other.osp_data.iter()) {
-            if !check_edge(edge_pair) {
-                return false;
-            }
-        }
-
-        // If we have a different number of comparisons compared to the number of edges, we know that there are orphans
-        if cached_comparisons.len() != self.edge_props.len()
-            || cached_comparisons.len() != other.edge_props.len()
-        {}
-
         true
     }
 }
@@ -224,13 +205,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     }
 }
 
+impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
+    TripleStore<NodeProperties, EdgeProperties> for MemTripleStore<NodeProperties, EdgeProperties>
+{
+}
+
 impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> TripleStoreError
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type Error = ();
-}
-
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    TripleStore<NodeProperties, EdgeProperties> for MemTripleStore<NodeProperties, EdgeProperties>
-{
 }

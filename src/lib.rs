@@ -44,6 +44,7 @@
 
 use std::borrow::Borrow;
 
+use itertools::Itertools;
 use ulid::Ulid;
 
 mod mem;
@@ -52,8 +53,11 @@ pub mod prelude;
 mod query_impl;
 mod triple;
 
+#[cfg(test)]
+mod conformance;
+
 #[cfg(feature = "sled")]
-mod sled;
+pub(crate) mod sled;
 
 pub use crate::mem::MemTripleStore;
 pub use crate::mergeable::Mergeable;
@@ -161,6 +165,56 @@ pub trait TripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType
     + TripleStoreQuery<NodeProperties, EdgeProperties>
     + TripleStoreExtend<NodeProperties, EdgeProperties>
 {
+    fn try_eq<OError: std::fmt::Debug>(
+        &self,
+        other: &impl TripleStore<NodeProperties, EdgeProperties, Error = OError>,
+    ) -> Result<bool, crate::TryEqError<Self::Error, OError>> {
+        let (self_nodes, self_edges) = self.iter_nodes(EdgeOrder::SPO);
+        let self_nodes = self_nodes.map(|r| r.map_err(|e| TryEqError::Left(e)));
+        let self_edges = self_edges.map(|r| r.map_err(|e| TryEqError::Left(e)));
+
+        let (other_nodes, other_edges) = other.iter_nodes(EdgeOrder::SPO);
+        let other_nodes = other_nodes.map(|r| r.map_err(|e| TryEqError::Right(e)));
+        let other_edges = other_edges.map(|r| r.map_err(|e| TryEqError::Right(e)));
+
+        for zip in self_nodes.zip_longest(other_nodes) {
+            match zip {
+                itertools::EitherOrBoth::Both(left, right) => {
+                    let left = left?;
+                    let right = right?;
+                    if left != right {
+                        return Ok(false);
+                    }
+                }
+                _ => {
+                    return Ok(false);
+                }
+            }
+        }
+
+        for zip in self_edges.zip_longest(other_edges) {
+            match zip {
+                itertools::EitherOrBoth::Both(left, right) => {
+                    let left = left?;
+                    let right = right?;
+                    if left != right {
+                        return Ok(false);
+                    }
+                }
+                _ => {
+                    return Ok(false);
+                }
+            }
+        }
+
+        Ok(true)
+    }
+}
+
+#[derive(Debug)]
+pub enum TryEqError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
+    Left(LeftError),
+    Right(RightError),
 }
 
 // Marker trait for all types which are supported as TripleStore properties.
@@ -311,7 +365,7 @@ pub trait TripleStoreQuery<NodeProperties: PropertyType, EdgeProperties: Propert
     TripleStoreError
 {
     /// The result type of a query.
-    type QueryResult;
+    type QueryResult: TripleStore<NodeProperties, EdgeProperties>;
 
     /// Execute a query and return the result.
     fn run(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;

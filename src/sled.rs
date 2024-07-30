@@ -67,3 +67,20 @@ impl<
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
 }
+
+impl<
+        NodeProperties: PropertyType + Serialize + DeserializeOwned,
+        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
+    > std::fmt::Debug for SledTripleStore<NodeProperties, EdgeProperties>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn create_test_db() -> Result<(tempdir::TempDir, sled::Db), sled::Error> {
+    let temp_dir = tempdir::TempDir::new("SledTripleStore")?;
+    let db = sled::open(temp_dir.path())?;
+    Ok((temp_dir, db))
+}
