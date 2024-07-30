@@ -60,7 +60,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use super::SledTripleStore;
+    use crate::prelude::*;
 
     #[test]
     fn test_extend() {

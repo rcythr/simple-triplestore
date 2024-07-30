@@ -44,18 +44,18 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use super::SledTripleStore;
+    use crate::prelude::*;
 
-    //     #[test]
-    //     fn test_merge() {
-    //         let mut temp_dirs = Vec::new();
-    //         crate::conformance::merge::test_merge(|| {
-    //             let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
-    //             let sled_db = SledTripleStore::new(&db).expect("ok");
-    //             temp_dirs.push((temp_dir, db));
-    //             sled_db
-    //         });
-    //     }
+    // #[test]
+    // fn test_merge() {
+    //     let mut temp_dirs = Vec::new();
+    //     crate::conformance::merge::test_merge(|| {
+    //         let (temp_dir, db) = crate::sled::create_test_db().expect("ok");
+    //         let sled_db = SledTripleStore::new(&db).expect("ok");
+    //         temp_dirs.push((temp_dir, db));
+    //         sled_db
+    //     });
+    // }
 
     //     #[test]
     //     fn test_merge_node() {

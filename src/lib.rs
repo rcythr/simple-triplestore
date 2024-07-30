@@ -263,19 +263,19 @@ pub trait TripleStoreInsert<NodeProperties: PropertyType, EdgeProperties: Proper
 pub trait TripleStoreRemove<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
     TripleStoreError
 {
-    /// Insert the node with `id`.
+    /// Remove the node with `id`.
     fn remove_node(&mut self, id: impl Borrow<Ulid>) -> Result<(), Self::Error>;
 
-    /// Insert the nodes with the given `ids`.
+    /// Remove the nodes with the given `ids`.
     fn remove_node_batch<I: IntoIterator<Item = impl Borrow<Ulid>>>(
         &mut self,
         ids: I,
     ) -> Result<(), Self::Error>;
 
-    /// Insert the node with `triple`.
+    /// Remove the node with `triple`.
     fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
 
-    /// Insert the nodes with the given `triples`.
+    /// Remove the nodes with the given `triples`.
     fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
         &mut self,
         triples: I,
@@ -358,6 +358,12 @@ pub trait TripleStoreIntoIter<NodeProperties: PropertyType, EdgeProperties: Prop
     ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
 }
 
+#[derive(Debug)]
+pub enum QueryError<SourceError: std::fmt::Debug, ResultError: std::fmt::Debug> {
+    Left(SourceError),
+    Right(ResultError),
+}
+
 /// A trait for querying operations in a [TripleStore].
 ///
 /// Supports arbitrary source, predicate, and object queries, as well as lookups for properties of nodes and edges.
@@ -366,9 +372,13 @@ pub trait TripleStoreQuery<NodeProperties: PropertyType, EdgeProperties: Propert
 {
     /// The result type of a query.
     type QueryResult: TripleStore<NodeProperties, EdgeProperties>;
+    type QueryResultError: std::fmt::Debug;
 
     /// Execute a query and return the result.
-    fn run(&self, query: Query) -> Result<Self::QueryResult, Self::Error>;
+    fn run(
+        &self,
+        query: Query,
+    ) -> Result<Self::QueryResult, QueryError<Self::Error, Self::QueryResultError>>;
 }
 
 #[derive(Debug)]

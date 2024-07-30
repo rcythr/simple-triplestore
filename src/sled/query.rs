@@ -2,7 +2,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{MemTripleStore, PropertyType, TripleStoreQuery};
 
-use super::SledTripleStore;
+use super::{QueryError, SledTripleStore};
 
 impl<
         NodeProperties: PropertyType + Serialize + DeserializeOwned,
@@ -11,7 +11,12 @@ impl<
     for SledTripleStore<NodeProperties, EdgeProperties>
 {
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
-    fn run(&self, query: crate::Query) -> Result<Self::QueryResult, Self::Error> {
+    type QueryResultError = ();
+
+    fn run(
+        &self,
+        query: crate::Query,
+    ) -> Result<Self::QueryResult, QueryError<Self::Error, Self::QueryResultError>> {
         match query {
             crate::Query::NodeProps(_) => todo!(),
             crate::Query::SPO(_) => todo!(),

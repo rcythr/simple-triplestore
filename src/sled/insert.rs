@@ -105,7 +105,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::SledTripleStore;
+    use crate::prelude::*;
 
     #[test]
     fn test_insert_node() {

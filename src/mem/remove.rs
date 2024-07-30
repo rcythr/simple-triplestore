@@ -138,25 +138,27 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_remove_node() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use crate::prelude::*;
 
-//     #[test]
-//     fn test_remove_node_batch() {
-//         todo!()
-//     }
+    #[test]
+    fn test_remove_node() {
+        crate::conformance::remove::test_remove_node(MemTripleStore::new());
+    }
 
-//     #[test]
-//     fn test_remove_edge() {
-//         todo!()
-//     }
+    #[test]
+    fn test_remove_node_batch() {
+        crate::conformance::remove::test_remove_node_batch(MemTripleStore::new());
+    }
 
-//     #[test]
-//     fn test_remove_edge_batch() {
-//         todo!()
-//     }
-// }
+    #[test]
+    fn test_remove_edge() {
+        crate::conformance::remove::test_remove_edge(MemTripleStore::new());
+    }
+
+    #[test]
+    fn test_remove_edge_batch() {
+        crate::conformance::remove::test_remove_edge_batch(MemTripleStore::new());
+    }
+}

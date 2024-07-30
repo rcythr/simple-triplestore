@@ -179,21 +179,22 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     }
 }
 
-// #[cfg(test)]
-// mod test {
+#[cfg(test)]
+mod test {
+    use crate::prelude::*;
 
-//     #[test]
-//     fn test_union() {
-//         todo!()
-//     }
+    #[test]
+    fn test_union() {
+        crate::conformance::set::test_union(MemTripleStore::new(), MemTripleStore::new());
+    }
 
-//     #[test]
-//     fn test_intersection() {
-//         todo!()
-//     }
+    #[test]
+    fn test_intersection() {
+        crate::conformance::set::test_intersection(MemTripleStore::new(), MemTripleStore::new());
+    }
 
-//     #[test]
-//     fn test_difference() {
-//         todo!()
-//     }
-// }
+    #[test]
+    fn test_difference() {
+        crate::conformance::set::test_difference(MemTripleStore::new(), MemTripleStore::new());
+    }
+}

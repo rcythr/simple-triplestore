@@ -87,7 +87,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
 
 #[cfg(test)]
 mod test {
-    use crate::MemTripleStore;
+    use crate::prelude::*;
 
     #[test]
     fn test_insert_node() {

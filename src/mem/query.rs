@@ -1,5 +1,4 @@
-use crate::{PropertyType, TripleStoreQuery};
-use crate::{Query, Triple, TripleStoreInsert};
+use crate::{prelude::*, PropertyType};
 
 use super::MemTripleStore;
 
@@ -8,10 +7,15 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
     for MemTripleStore<NodeProperties, EdgeProperties>
 {
     type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    type QueryResultError = ();
+
     fn run(
         &self,
         query: Query,
-    ) -> Result<MemTripleStore<NodeProperties, EdgeProperties>, Self::Error> {
+    ) -> Result<
+        MemTripleStore<NodeProperties, EdgeProperties>,
+        QueryError<Self::Error, Self::QueryResultError>,
+    > {
         Ok(match query {
             Query::NodeProps(nodes) => {
                 let mut result = MemTripleStore::new();
@@ -29,7 +33,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                     let triple = Triple { sub, pred, obj };
                     if let Some(data_id) = self.spo_data.get(&triple.encode_spo()) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(triple, data.clone())?;
+                            result
+                                .insert_edge(triple, data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -41,7 +47,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for sub in items {
                     for (key, data_id) in self.spo_data.range(Triple::key_bounds_1(sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_spo(&key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_spo(&key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -53,7 +61,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for (sub, pred) in items {
                     for (key, data_id) in self.spo_data.range(Triple::key_bounds_2(sub, pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_spo(&key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_spo(&key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -65,7 +75,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for (sub, obj) in items {
                     for (key, data_id) in self.osp_data.range(Triple::key_bounds_2(obj, sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_osp(key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_osp(key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -77,7 +89,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for pred in items {
                     for (key, data_id) in self.pos_data.range(Triple::key_bounds_1(pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_pos(key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_pos(key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -89,7 +103,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for (pred, obj) in items {
                     for (key, data_id) in self.pos_data.range(Triple::key_bounds_2(pred, obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_pos(key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_pos(key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }
@@ -101,7 +117,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 for obj in items {
                     for (key, data_id) in self.osp_data.range(Triple::key_bounds_1(obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
-                            result.insert_edge(Triple::decode_osp(key), data.clone())?;
+                            result
+                                .insert_edge(Triple::decode_osp(key), data.clone())
+                                .map_err(|e| QueryError::Right(e))?;
                         }
                     }
                 }

@@ -38,25 +38,35 @@ impl<
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     #[test]
-//     fn test_remove_node() {
-//         todo!()
-//     }
+#[cfg(test)]
+mod test {
+    use crate::prelude::*;
 
-//     #[test]
-//     fn test_remove_node_batch() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_remove_node() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::remove::test_remove_node(sled_db);
+    // }
 
-//     #[test]
-//     fn test_remove_edge() {
-//         todo!()
-//     }
+    // #[test]
+    // fn test_remove_node_batch() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::remove::test_remove_node_batch(sled_db);
+    // }
 
-//     #[test]
-//     fn test_remove_edge_batch() {
-//         todo!()
-//     }
-// }
+    // #[test]
+    // fn test_remove_edge() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::remove::test_remove_edge(sled_db);
+    // }
+
+    // #[test]
+    // fn test_remove_edge_batch() {
+    //     let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
+    //     let sled_db = SledTripleStore::new(&db).expect("ok");
+    //     crate::conformance::remove::test_remove_edge_batch(sled_db);
+    // }
+}
