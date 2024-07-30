@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{prelude::*, EdgeOrder, PropertyType, SetOpsError};
 
 impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
@@ -119,6 +121,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
         let mut other_edges = other_edges.map(|r| r.map_err(|e| SetOpsError::Right(e)));
 
         // Intersect nodes
+        let mut removed_nodes = HashSet::new();
         {
             let mut self_node = self_nodes.next().transpose()?;
             let mut other_node = other_nodes.next().transpose()?;
@@ -132,8 +135,10 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                         .map_err(|e| SetOpsError::Result(e))?;
                     self_node = self_nodes.next().transpose()?;
                 } else if right_key < left_key {
+                    removed_nodes.insert(right_key.clone());
                     other_node = other_nodes.next().transpose()?;
                 } else {
+                    removed_nodes.insert(right_key.clone());
                     self_node = self_nodes.next().transpose()?;
                     other_node = other_nodes.next().transpose()?;
                 }
@@ -156,9 +161,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
                 (&self_edge, &other_edge)
             {
                 if self_key < other_key {
-                    result
-                        .insert_edge(self_key.clone(), self_props.clone())
-                        .map_err(|e| SetOpsError::Result(e))?;
+                    if !(removed_nodes.contains(&self_key.sub)
+                        || removed_nodes.contains(&self_key.obj))
+                    {
+                        result
+                            .insert_edge(self_key.clone(), self_props.clone())
+                            .map_err(|e| SetOpsError::Result(e))?;
+                    }
                     self_edge = self_edges.next().transpose()?;
                 } else if other_key < self_key {
                     other_edge = other_edges.next().transpose()?;
