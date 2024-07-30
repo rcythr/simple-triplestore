@@ -63,64 +63,60 @@ impl Default for Config {
 }
 
 fn build_graph<T: TripleStore<String, String>>(mut db: T, config: Config) -> T {
-    db.insert_node_batch(
-        [
-            (config.node_0, config.node_props_0),
-            (config.node_1, config.node_props_1),
-            (config.node_2, config.node_props_2),
-            (config.node_3, config.node_props_3),
-            (config.node_4, config.node_props_4),
-        ]
-        .into_iter(),
-    )
-    .expect("success");
+    for (node, props) in [
+        (config.node_0, config.node_props_0),
+        (config.node_1, config.node_props_1),
+        (config.node_2, config.node_props_2),
+        (config.node_3, config.node_props_3),
+        (config.node_4, config.node_props_4),
+    ] {
+        db.insert_node(node, props).expect("success");
+    }
 
-    db.insert_edge_batch(
-        [
-            (
-                Triple {
-                    sub: config.node_0,
-                    pred: config.edge_1,
-                    obj: config.node_1,
-                },
-                config.edge_0_1_props,
-            ),
-            (
-                Triple {
-                    sub: config.node_0,
-                    pred: config.edge_2,
-                    obj: config.node_2,
-                },
-                config.edge_0_2_props,
-            ),
-            (
-                Triple {
-                    sub: config.node_1,
-                    pred: config.edge_1,
-                    obj: config.node_2,
-                },
-                config.edge_props_1,
-            ),
-            (
-                Triple {
-                    sub: config.node_2,
-                    pred: config.edge_2,
-                    obj: config.node_4,
-                },
-                config.edge_props_2,
-            ),
-            (
-                Triple {
-                    sub: config.node_3,
-                    pred: config.edge_2,
-                    obj: config.node_4,
-                },
-                config.edge_props_3,
-            ),
-        ]
-        .into_iter(),
-    )
-    .expect("success");
+    for (triple, props) in [
+        (
+            Triple {
+                sub: config.node_0,
+                pred: config.edge_1,
+                obj: config.node_1,
+            },
+            config.edge_0_1_props,
+        ),
+        (
+            Triple {
+                sub: config.node_0,
+                pred: config.edge_2,
+                obj: config.node_2,
+            },
+            config.edge_0_2_props,
+        ),
+        (
+            Triple {
+                sub: config.node_1,
+                pred: config.edge_1,
+                obj: config.node_2,
+            },
+            config.edge_props_1,
+        ),
+        (
+            Triple {
+                sub: config.node_2,
+                pred: config.edge_2,
+                obj: config.node_4,
+            },
+            config.edge_props_2,
+        ),
+        (
+            Triple {
+                sub: config.node_3,
+                pred: config.edge_2,
+                obj: config.node_4,
+            },
+            config.edge_props_3,
+        ),
+    ] {
+        db.insert_edge(triple, props).expect("success");
+    }
 
     db
 }

@@ -101,15 +101,16 @@ pub(crate) fn test_insert_node<T: TripleStore<String, String>>(mut db: T) {
 pub(crate) fn test_insert_node_batch<T: TripleStore<String, String>>(mut db: T) {
     let config = Config::default();
 
-    db.insert_node_batch([
+    for (node, props) in [
         (config.node_1, config.node_data_1.clone()),
         (config.node_2, config.node_data_2.clone()),
         (config.node_3, config.node_data_3.clone()),
         (config.node_4, config.node_data_4.clone()),
         // Clobber the earlier entry
         (config.node_4, config.node_data_5.clone()),
-    ])
-    .expect("insert should succeed");
+    ] {
+        db.insert_node(node, props).expect("insert should succeed");
+    }
 
     let (nodes, edges) = db.iter_nodes(EdgeOrder::SPO);
     assert_eq!(
@@ -128,13 +129,14 @@ pub(crate) fn test_insert_node_batch<T: TripleStore<String, String>>(mut db: T) 
 pub(crate) fn test_insert_edge<T: TripleStore<String, String>>(mut db: T) {
     let config = Config::default();
 
-    db.insert_node_batch([
+    for (node, props) in [
         (config.node_1, config.node_data_1.clone()),
         (config.node_2, config.node_data_2.clone()),
         (config.node_3, config.node_data_3.clone()),
         (config.node_4, config.node_data_4.clone()),
-    ])
-    .expect("insert should succeed");
+    ] {
+        db.insert_node(node, props).expect("insert should succeed");
+    }
 
     db.insert_edge(
         Triple {
@@ -212,88 +214,6 @@ pub(crate) fn test_insert_edge<T: TripleStore<String, String>>(mut db: T) {
                     obj: config.node_4,
                 },
                 config.edge_data_4.clone(),
-            )
-        ]
-        .to_vec()
-    );
-}
-
-pub(crate) fn test_insert_edge_batch<T: TripleStore<String, String>>(mut db: T) {
-    let config = Config::default();
-
-    db.insert_node_batch([
-        (config.node_1, config.node_data_1.clone()),
-        (config.node_2, config.node_data_2.clone()),
-        (config.node_3, config.node_data_3.clone()),
-        (config.node_4, config.node_data_4.clone()),
-    ])
-    .expect("insert should succeed");
-
-    db.insert_edge_batch([
-        (
-            Triple {
-                sub: config.node_1,
-                pred: config.edge_1,
-                obj: config.node_2,
-            },
-            config.edge_data_1.clone(),
-        ),
-        (
-            Triple {
-                sub: config.node_2,
-                pred: config.edge_2,
-                obj: config.node_3,
-            },
-            config.edge_data_2.clone(),
-        ),
-        (
-            Triple {
-                sub: config.node_3,
-                pred: config.edge_3,
-                obj: config.node_4,
-            },
-            config.edge_data_3.clone(),
-        ),
-    ])
-    .expect("insert_edge_batch should work");
-
-    let (nodes, edges) = db.iter_nodes(EdgeOrder::SPO);
-    assert_eq!(
-        nodes.map(|e| e.expect("ok")).collect::<Vec<_>>(),
-        [
-            (config.node_1, config.node_data_1.clone()),
-            (config.node_2, config.node_data_2.clone()),
-            (config.node_3, config.node_data_3.clone()),
-            (config.node_4, config.node_data_4.clone()),
-        ]
-        .to_vec()
-    );
-    assert_eq!(
-        edges.map(|e| e.expect("ok")).collect::<Vec<_>>(),
-        [
-            (
-                Triple {
-                    sub: config.node_1,
-                    pred: config.edge_1,
-                    obj: config.node_2,
-                },
-                config.edge_data_1.clone()
-            ),
-            (
-                Triple {
-                    sub: config.node_2,
-                    pred: config.edge_2,
-                    obj: config.node_3,
-                },
-                config.edge_data_2.clone(),
-            ),
-            (
-                Triple {
-                    sub: config.node_3,
-                    pred: config.edge_3,
-                    obj: config.node_4,
-                },
-                config.edge_data_3.clone(),
             )
         ]
         .to_vec()

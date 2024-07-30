@@ -98,16 +98,6 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
         Ok(())
     }
 
-    fn merge_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
-        &mut self,
-        nodes: I,
-    ) -> Result<(), ()> {
-        for (node, data) in nodes {
-            self.merge_node(node, data)?;
-        }
-        Ok(())
-    }
-
     fn merge_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), ()> {
         let old_edge_data_id = match self.spo_data.entry(Triple::encode_spo(&triple)) {
             std::collections::btree_map::Entry::Vacant(_) => None,
@@ -118,16 +108,6 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
 
         self.insert_edge_data_internal(&triple, &new_edge_data_id);
 
-        Ok(())
-    }
-
-    fn merge_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
-        &mut self,
-        triples: I,
-    ) -> Result<(), ()> {
-        for (triple, data) in triples {
-            self.merge_edge(triple, data)?;
-        }
         Ok(())
     }
 }
@@ -147,17 +127,7 @@ mod test {
     }
 
     #[test]
-    fn test_merge_node_batch() {
-        crate::conformance::merge::test_merge_node_batch(|| MemTripleStore::new());
-    }
-
-    #[test]
     fn test_merge_edge() {
         crate::conformance::merge::test_merge_edge(|| MemTripleStore::new());
-    }
-
-    #[test]
-    fn test_merge_edge_batch() {
-        crate::conformance::merge::test_merge_edge_batch(|| MemTripleStore::new());
     }
 }

@@ -104,39 +104,43 @@ impl Default for Config {
 }
 
 fn setup_left<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
-    left.insert_node_batch([
+    for (node, props) in [
         config.l1.clone(),
         config.l2.clone(),
         config.m1.clone(),
         config.m2.clone(),
-    ])
-    .expect("ok");
+    ] {
+        left.insert_node(node, props).expect("ok");
+    }
 
-    left.insert_edge_batch([
+    for (triple, props) in [
         config.e_l1_l2.clone(),
         config.e_l1_m1.clone(),
         config.e_m1_m2.clone(),
         config.e_m2_l2.clone(),
-    ])
-    .expect("ok");
+    ] {
+        left.insert_edge(triple, props).expect("ok");
+    }
 }
 
-fn setup_right<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
-    left.insert_node_batch([
+fn setup_right<T: TripleStore<String, String>>(config: &Config, right: &mut T) {
+    for (node, props) in [
         config.r1.clone(),
         config.r2.clone(),
         config.m1.clone(),
         config.m2.clone(),
-    ])
-    .expect("ok");
+    ] {
+        right.insert_node(node, props).expect("ok");
+    }
 
-    left.insert_edge_batch([
+    for (triple, props) in [
         config.e_r1_r2.clone(),
         config.e_m1_r1.clone(),
         config.e_m1_m2.clone(),
         config.e_r2_m2.clone(),
-    ])
-    .expect("ok");
+    ] {
+        right.insert_edge(triple, props).expect("ok");
+    }
 }
 
 pub(crate) fn test_union<T: TripleStore<String, String> + TripleStoreSetOps<String, String>>(

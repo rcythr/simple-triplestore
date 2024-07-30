@@ -51,16 +51,6 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
         Ok(())
     }
 
-    fn insert_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
-        &mut self,
-        nodes: I,
-    ) -> Result<(), Self::Error> {
-        for (node, data) in nodes {
-            self.insert_node(node, data)?;
-        }
-        Ok(())
-    }
-
     fn insert_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), Self::Error> {
         let old_edge_data_id = match self.spo_data.entry(Triple::encode_spo(&triple)) {
             std::collections::btree_map::Entry::Vacant(_) => None,
@@ -71,16 +61,6 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
 
         self.insert_edge_data_internal(&triple, &new_edge_data_id);
 
-        Ok(())
-    }
-
-    fn insert_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
-        &mut self,
-        triples: I,
-    ) -> Result<(), Self::Error> {
-        for (triple, data) in triples {
-            self.insert_edge(triple, data)?;
-        }
         Ok(())
     }
 }
@@ -96,20 +76,8 @@ mod test {
     }
 
     #[test]
-    fn test_insert_node_batch() {
-        let db: MemTripleStore<String, String> = MemTripleStore::new();
-        crate::conformance::insert::test_insert_node_batch(db);
-    }
-
-    #[test]
     fn test_insert_edge() {
         let db: MemTripleStore<String, String> = MemTripleStore::new();
         crate::conformance::insert::test_insert_edge(db);
-    }
-
-    #[test]
-    fn test_insert_edge_batch() {
-        let db: MemTripleStore<String, String> = MemTripleStore::new();
-        crate::conformance::insert::test_insert_edge_batch(db);
     }
 }

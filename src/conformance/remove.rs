@@ -49,15 +49,16 @@ impl Default for Config {
 }
 
 fn populate_graph<T: TripleStore<String, String>>(config: &Config, db: &mut T) {
-    db.insert_node_batch([
+    for (node, props) in [
         (config.node_1, config.node_data_1.clone()),
         (config.node_2, config.node_data_2.clone()),
         (config.node_3, config.node_data_3.clone()),
         (config.node_4, config.node_data_4.clone()),
-    ])
-    .expect("insert should succeed");
+    ] {
+        db.insert_node(node, props).expect("insert should succeed");
+    }
 
-    db.insert_edge_batch([
+    for (triple, props) in [
         (
             Triple {
                 sub: config.node_1,
@@ -82,8 +83,10 @@ fn populate_graph<T: TripleStore<String, String>>(config: &Config, db: &mut T) {
             },
             config.edge_data_3.clone(),
         ),
-    ])
-    .expect("insert_edge_batch should work");
+    ] {
+        db.insert_edge(triple, props)
+            .expect("insert_edge_batch should work");
+    }
 }
 
 pub(crate) fn test_remove_node<T: TripleStore<String, String>>(mut db: T) {
@@ -92,52 +95,6 @@ pub(crate) fn test_remove_node<T: TripleStore<String, String>>(mut db: T) {
 
     db.remove_node(config.node_1).expect("ok");
     db.remove_node(config.node_4).expect("ok");
-
-    assert_eq!(
-        db.iter_vertices()
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [
-            (config.node_2, config.node_data_2.clone()),
-            (config.node_3, config.node_data_3.clone()),
-        ]
-        .to_vec()
-    );
-
-    assert_eq!(
-        db.iter_edges(EdgeOrder::SPO)
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [(
-            Triple {
-                sub: config.node_2,
-                pred: config.edge_2,
-                obj: config.node_3,
-            },
-            config.edge_data_2.clone(),
-        ),]
-        .to_vec()
-    );
-
-    assert_eq!(
-        db.iter_edges_with_props(EdgeOrder::SPO)
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [PropsTriple {
-            sub: (config.node_2, config.node_data_2),
-            pred: (config.edge_2, config.edge_data_2),
-            obj: (config.node_3, config.node_data_3)
-        }]
-        .to_vec()
-    );
-}
-
-pub(crate) fn test_remove_node_batch<T: TripleStore<String, String>>(mut db: T) {
-    let config = Config::default();
-    populate_graph(&config, &mut db);
-
-    db.remove_node_batch([config.node_1, config.node_4])
-        .expect("ok");
 
     assert_eq!(
         db.iter_vertices()
@@ -194,65 +151,6 @@ pub(crate) fn test_remove_edge<T: TripleStore<String, String>>(mut db: T) {
         pred: config.edge_3,
         obj: config.node_4,
     })
-    .expect("ok");
-
-    assert_eq!(
-        db.iter_vertices()
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [
-            (config.node_1, config.node_data_1.clone()),
-            (config.node_2, config.node_data_2.clone()),
-            (config.node_3, config.node_data_3.clone()),
-            (config.node_4, config.node_data_4.clone()),
-        ]
-        .to_vec()
-    );
-
-    assert_eq!(
-        db.iter_edges(EdgeOrder::SPO)
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [(
-            Triple {
-                sub: config.node_2,
-                pred: config.edge_2,
-                obj: config.node_3,
-            },
-            config.edge_data_2.clone(),
-        )]
-        .to_vec()
-    );
-
-    assert_eq!(
-        db.iter_edges_with_props(EdgeOrder::SPO)
-            .map(|r| r.expect("ok"))
-            .collect::<Vec<_>>(),
-        [PropsTriple {
-            sub: (config.node_2, config.node_data_2),
-            pred: (config.edge_2, config.edge_data_2),
-            obj: (config.node_3, config.node_data_3)
-        }]
-        .to_vec()
-    );
-}
-
-pub(crate) fn test_remove_edge_batch<T: TripleStore<String, String>>(mut db: T) {
-    let config = Config::default();
-    populate_graph(&config, &mut db);
-
-    db.remove_edge_batch([
-        Triple {
-            sub: config.node_1,
-            pred: config.edge_1,
-            obj: config.node_2,
-        },
-        Triple {
-            sub: config.node_3,
-            pred: config.edge_3,
-            obj: config.node_4,
-        },
-    ])
     .expect("ok");
 
     assert_eq!(

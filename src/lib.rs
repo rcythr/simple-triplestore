@@ -163,28 +163,11 @@ pub trait TripleStoreInsert<NodeProperties: PropertyType, EdgeProperties: Proper
     /// Insert a node with `id` and `props`.
     fn insert_node(&mut self, id: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
 
-    /// Insert a collection of nodes with (id, props).
-    ///
-    /// Implementations may either optimize batch insertion or repeatedly call `insert_node`.
-    fn insert_node_batch<I>(&mut self, nodes: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = (Ulid, NodeProperties)>;
-
     /// Insert an edge with `triple` and `props`.
     ///
     /// <div class="warning">Nodes need not be inserted before edges; however, Orphaned edges (edges referring to missing nodes) are ignored
     /// by iteration functions and higher-order operations.</div>
     fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
-
-    /// Insert a collection of edges with (triple, props).
-    ///
-    /// Implementations may either optimize batch insertion or iteratively call `insert_edge`.
-    ///
-    /// <div class="warning">Nodes need not be inserted before edges; however, orphaned edges (edges referring to missing nodes) are ignored
-    /// by iteration functions and higher-order operations.</div>
-    fn insert_edge_batch<I>(&mut self, triples: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = (Triple, EdgeProperties)>;
 }
 
 /// Removal operations for TripleStores.
@@ -194,20 +177,8 @@ pub trait TripleStoreRemove<NodeProperties: PropertyType, EdgeProperties: Proper
     /// Remove the node with `id`.
     fn remove_node(&mut self, id: impl Borrow<Ulid>) -> Result<(), Self::Error>;
 
-    /// Remove the nodes with the given `ids`.
-    fn remove_node_batch<I: IntoIterator<Item = impl Borrow<Ulid>>>(
-        &mut self,
-        ids: I,
-    ) -> Result<(), Self::Error>;
-
     /// Remove the node with `triple`.
     fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
-
-    /// Remove the nodes with the given `triples`.
-    fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
-        &mut self,
-        triples: I,
-    ) -> Result<(), Self::Error>;
 }
 
 pub enum EdgeOrder {
@@ -404,22 +375,6 @@ pub trait TripleStoreMerge<
     /// Merge a single node with `id` and `props`.
     fn merge_node(&mut self, node: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
 
-    //// Merge a collection of nodes with `(id, props)`.
-    ///
-    /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
-    fn merge_node_batch<I: IntoIterator<Item = (Ulid, NodeProperties)>>(
-        &mut self,
-        nodes: I,
-    ) -> Result<(), Self::Error>;
-
     //// Merge a collection of edges with `(id, props)`.
     fn merge_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
-
-    /// Merge a collection of edges with `(triple, props)`.
-    ///
-    /// Implementations may optimize batch merging, or may simply invoke `merge_node` repeatedly.
-    fn merge_edge_batch<I: IntoIterator<Item = (Triple, EdgeProperties)>>(
-        &mut self,
-        triples: I,
-    ) -> Result<(), Self::Error>;
 }

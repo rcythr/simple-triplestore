@@ -93,22 +93,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
         }
 
         // Remove the forward and backward edges
-        self.remove_edge_batch(
-            forward_triples
-                .into_iter()
-                .chain(backward_triples.into_iter()),
-        )?;
-
-        Ok(())
-    }
-
-    fn remove_node_batch<I: IntoIterator<Item = impl Borrow<Ulid>>>(
-        &mut self,
-        nodes: I,
-    ) -> Result<(), Self::Error> {
-        for node in nodes {
-            self.remove_node(node)?;
+        for edge in forward_triples
+            .into_iter()
+            .chain(backward_triples.into_iter())
+        {
+            self.remove_edge(edge)?;
         }
+
         Ok(())
     }
 
@@ -126,16 +117,6 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
         }
         Ok(())
     }
-
-    fn remove_edge_batch<I: IntoIterator<Item = Triple>>(
-        &mut self,
-        triples: I,
-    ) -> Result<(), Self::Error> {
-        for triple in triples {
-            self.remove_edge(triple)?;
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -148,17 +129,7 @@ mod test {
     }
 
     #[test]
-    fn test_remove_node_batch() {
-        crate::conformance::remove::test_remove_node_batch(MemTripleStore::new());
-    }
-
-    #[test]
     fn test_remove_edge() {
         crate::conformance::remove::test_remove_edge(MemTripleStore::new());
-    }
-
-    #[test]
-    fn test_remove_edge_batch() {
-        crate::conformance::remove::test_remove_edge_batch(MemTripleStore::new());
     }
 }
