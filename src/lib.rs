@@ -83,80 +83,8 @@ pub use crate::triple::{PropsTriple, Triple};
 ///   * [Set Operations][TripleStoreSetOps]
 ///
 /// # Example
-/// The simplest possible implemenation is [MemTripleStore] which uses[std::collections::BTreeMap] to provide non-persistent storage in memory.
 ///
-/// ```
-/// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
-///  
-/// let mut db = MemTripleStore::new();
-///
-/// // Get some identifiers. These will probably come from an index such as `Readable Name -> Ulid`
-/// let node_1 = Ulid(123);
-/// let node_2 = Ulid(456);
-/// let node_3 = Ulid(789);
-///
-/// let edge = Ulid(999);
-///
-/// // We can insert nodes and edges with user-defined property types.
-/// // For a given TripleStore we can have one type for Nodes and one for Edges.
-/// db.insert_node(node_1, "foo".to_string())?;
-/// db.insert_node(node_2, "bar".to_string())?;
-/// db.insert_node(node_3, "baz".to_string())?;
-///
-/// db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3]))?;
-/// db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))?;
-///
-/// // Two vertices with correct properties.
-/// assert_eq!(db.iter_vertices().collect::<Vec<_>>(),  [
-///     Ok((node_1, "foo".to_string())),
-///     Ok((node_2, "bar".to_string())),
-///     Ok((node_3, "baz".to_string()))
-/// ]);
-///
-/// // One edge with the correct properties.
-/// assert_eq!(db.iter_edges_with_props(EdgeOrder::default()).collect::<Vec<_>>(), [
-///   Ok(PropsTriple{
-///     sub: (node_1, "foo".to_string()),
-///     pred: (edge, Vec::from([1,2,3])),
-///     obj: (node_2, "bar".to_string())}),
-///   Ok(PropsTriple{
-///     sub: (node_1, "foo".to_string()),
-///     pred: (edge, Vec::from([4,5,6])),
-///     obj: (node_3, "baz".to_string())})
-/// ]);
-/// # Ok::<(), ()>(())
-/// ```
-///
-/// We can do arbitrary queries, e.g.:
-/// ```
-/// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
-/// # let mut db = MemTripleStore::new();
-/// # let node_1 = Ulid(123);
-/// # let node_2 = Ulid(456);
-/// # let node_3 = Ulid(789);
-/// # let edge = Ulid(999);
-/// # db.insert_node(node_1, "foo".to_string())?;
-/// # db.insert_node(node_2, "bar".to_string())?;
-/// # db.insert_node(node_3, "baz".to_string())?;
-/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3]))?;
-/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))?;
-/// // 1. Edges where node_3 is the object.
-/// assert_eq!(db.run(query!{ ? -?-> [node_3] })?
-///              .iter_edges(EdgeOrder::default()).collect::<Vec<_>>(), [
-///   Ok((Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))),
-/// ]);
-///
-/// // Edges with `edge` as the predicate.
-/// assert_eq!(db.run(query!{ ? -[edge]-> ? })?
-///              .iter_edges(EdgeOrder::default()).collect::<Vec<_>>(), [
-///   Ok((Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3]))),
-///   Ok((Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6]))),
-/// ]);
-///
-/// # Ok::<(), ()>(())
-/// ```
+/// See [MemTripleStore] or [SledTripleStore] for usage.
 pub trait TripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
     TripleStoreInsert<NodeProperties, EdgeProperties>
     + TripleStoreRemove<NodeProperties, EdgeProperties>

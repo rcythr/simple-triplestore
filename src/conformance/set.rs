@@ -39,7 +39,7 @@ impl Default for Config {
         let e_m1_m2 = (
             Triple {
                 sub: m1.0,
-                pred: Ulid(8),
+                pred: Ulid(7),
                 obj: m2.0,
             },
             "h".into(),
@@ -47,7 +47,7 @@ impl Default for Config {
         let e_r1_r2 = (
             Triple {
                 sub: r1.0,
-                pred: Ulid(9),
+                pred: Ulid(7),
                 obj: r2.0,
             },
             "i".into(),
@@ -55,7 +55,7 @@ impl Default for Config {
         let e_r2_m2 = (
             Triple {
                 sub: r2.0,
-                pred: Ulid(10),
+                pred: Ulid(8),
                 obj: m2.0,
             },
             "j".into(),
@@ -63,7 +63,7 @@ impl Default for Config {
         let e_m2_l2 = (
             Triple {
                 sub: m2.0,
-                pred: Ulid(11),
+                pred: Ulid(8),
                 obj: l2.0,
             },
             "k".into(),
@@ -71,7 +71,7 @@ impl Default for Config {
         let e_l1_m1 = (
             Triple {
                 sub: l1.0,
-                pred: Ulid(12),
+                pred: Ulid(9),
                 obj: m1.0,
             },
             "l".into(),
@@ -79,7 +79,7 @@ impl Default for Config {
         let e_m1_r1 = (
             Triple {
                 sub: m1.0,
-                pred: Ulid(13),
+                pred: Ulid(9),
                 obj: r1.0,
             },
             "m".into(),
