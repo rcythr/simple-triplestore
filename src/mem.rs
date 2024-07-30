@@ -75,12 +75,11 @@ mod set;
 /// # let node_2 = Ulid(456);
 /// # let node_3 = Ulid(789);
 /// # let edge = Ulid(999);
-/// # // Mapping these to query error is a hack to make the example clearer.
-/// # db.insert_node(node_1, "foo".to_string()).map_err(|e| QueryError::Left(e))?;
-/// # db.insert_node(node_2, "bar".to_string()).map_err(|e| QueryError::Left(e))?;
-/// # db.insert_node(node_3, "baz".to_string()).map_err(|e| QueryError::Left(e))?;
-/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3])).map_err(|e| QueryError::Left(e))?;
-/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6])).map_err(|e| QueryError::Left(e))?;
+/// # db.insert_node(node_1, "foo".to_string()).expect("ok");
+/// # db.insert_node(node_2, "bar".to_string()).expect("ok");
+/// # db.insert_node(node_3, "baz".to_string()).expect("ok");
+/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_2}, Vec::from([1,2,3])).expect("ok");
+/// # db.insert_edge(Triple{sub: node_1, pred: edge, obj: node_3}, Vec::from([4,5,6])).expect("ok");
 /// // 1. Edges where node_3 is the object.
 /// assert_eq!(
 ///   db.run(query!{ ? -?-> [node_3] })?

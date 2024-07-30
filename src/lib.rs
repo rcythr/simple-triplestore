@@ -57,7 +57,7 @@ mod triple;
 mod conformance;
 
 #[cfg(feature = "sled")]
-pub(crate) mod sled;
+pub mod sled;
 
 pub use crate::mem::MemTripleStore;
 pub use crate::mergeable::Mergeable;
