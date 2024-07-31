@@ -1,7 +1,9 @@
 use std::borrow::Borrow;
 
 use serde::{de::DeserializeOwned, Serialize};
+use sled::Batch;
 use sled::IVec;
+use sled::Transactional;
 
 use crate::traits::IdType;
 use crate::{prelude::*, Property};
@@ -13,94 +15,141 @@ impl<
         Id: IdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
-    > SledTripleStore<Id, NodeProps, EdgeProps>
-{
-    // Gets the set of outgoing edges from a given node.
-    fn get_spo_edge_range(
-        &self,
-        node: &Id,
-    ) -> Result<(Vec<Triple<Id>>, Vec<IVec>), SledTripleStoreError> {
-        self.spo_data
-            .range(Id::key_bounds_1(node.clone()))
-            .try_fold(
-                (Vec::new(), Vec::new()),
-                |(mut triples, mut edge_data_ids), r| {
-                    let (triple, edge_data_id) =
-                        r.map_err(|e| SledTripleStoreError::SledError(e))?;
-
-                    triples.push(Id::decode_spo_triple(
-                        &triple[..]
-                            .try_into()
-                            .map_err(|_| super::SledTripleStoreError::KeySizeError)?,
-                    ));
-                    edge_data_ids.push(edge_data_id.clone());
-                    Ok((triples, edge_data_ids))
-                },
-            )
-    }
-
-    // Gets the set of incoming edges to a given node.
-    fn get_osp_edge_range(
-        &self,
-        node: &Id,
-    ) -> Result<(Vec<Triple<Id>>, Vec<IVec>), SledTripleStoreError> {
-        self.osp_data
-            .range(Id::key_bounds_1(node.clone()))
-            .try_fold(
-                (Vec::new(), Vec::new()),
-                |(mut triples, mut edge_data_ids), r| {
-                    let (triple, edge_data_id) =
-                        r.map_err(|e| SledTripleStoreError::SledError(e))?;
-                    triples.push(Id::decode_osp_triple(
-                        &triple[..]
-                            .try_into()
-                            .map_err(|_| super::SledTripleStoreError::KeySizeError)?,
-                    ));
-                    edge_data_ids.push(edge_data_id.clone());
-                    Ok((triples, edge_data_ids))
-                },
-            )
-    }
-}
-
-impl<
-        Id: IdType,
-        NodeProps: Property + Serialize + DeserializeOwned,
-        EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreRemove<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
 {
     fn remove_node(&mut self, node: impl Borrow<Id>) -> Result<(), Self::Error> {
-        // Find all uses of this node in the edges.
-        let (forward_triples, forward_edge_data_ids) = self.get_spo_edge_range(node.borrow())?;
-        let (backward_triples, backward_edge_data_ids) = self.get_osp_edge_range(node.borrow())?;
+        // Collect forward edges from this node as subject.
+        let (spo_forward_batch, pos_forward_batch, osp_forward_batch, edge_props_forward_batch) =
+            self.spo_data
+                .range(Id::key_bounds_1(node.borrow().clone()))
+                .try_fold(
+                    (
+                        Batch::default(),
+                        Batch::default(),
+                        Batch::default(),
+                        Batch::default(),
+                    ),
+                    |(mut spo_batch, mut pos_batch, mut osp_batch, mut edge_data_ids), r| {
+                        let (spo_triple, edge_data_id) =
+                            r.map_err(|e| SledTripleStoreError::SledError(e))?;
 
-        // Remove the node props.
-        self.node_props
-            .remove(node.borrow().to_be_bytes())
-            .map_err(|e| SledTripleStoreError::SledError(e))?;
+                        let triple = Id::decode_spo_triple(
+                            &spo_triple[..]
+                                .try_into()
+                                .map_err(|_| super::SledTripleStoreError::KeySizeError)?,
+                        );
 
-        // Remove all the edge props for all the edges we'll be removing.
-        for edge_data_id in forward_edge_data_ids
-            .into_iter()
-            .chain(backward_edge_data_ids.into_iter())
-        {
-            self.edge_props
-                .remove(&edge_data_id)
-                .map_err(|e| SledTripleStoreError::SledError(e))?;
-        }
+                        spo_batch.remove(&spo_triple);
+                        pos_batch.remove(Id::encode_pos_triple(&triple).as_ref());
+                        osp_batch.remove(Id::encode_osp_triple(&triple).as_ref());
+                        edge_data_ids.remove(edge_data_id.as_ref());
 
-        // Remove the forward and backward edges
-        for edge in forward_triples
-            .into_iter()
-            .chain(backward_triples.into_iter())
-        {
-            self.remove_edge(edge)?;
-        }
+                        Ok::<(Batch, Batch, Batch, Batch), SledTripleStoreError>((
+                            spo_batch,
+                            pos_batch,
+                            osp_batch,
+                            edge_data_ids,
+                        ))
+                    },
+                )?;
+
+        // Collect backward edges from this node as object.
+        let (spo_backward_batch, pos_backward_batch, osp_backward_batch, edge_props_backward_batch) =
+            self.osp_data
+                .range(Id::key_bounds_1(node.borrow().clone()))
+                .try_fold(
+                    (
+                        Batch::default(),
+                        Batch::default(),
+                        Batch::default(),
+                        Batch::default(),
+                    ),
+                    |(mut spo_batch, mut pos_batch, mut osp_batch, mut edge_data_ids), r| {
+                        let (osp_triple, edge_data_id) =
+                            r.map_err(|e| SledTripleStoreError::SledError(e))?;
+
+                        let triple = Id::decode_osp_triple(
+                            &osp_triple[..]
+                                .try_into()
+                                .map_err(|_| super::SledTripleStoreError::KeySizeError)?,
+                        );
+
+                        osp_batch.remove(&osp_triple);
+                        pos_batch.remove(Id::encode_pos_triple(&triple).as_ref());
+                        spo_batch.remove(Id::encode_spo_triple(&triple).as_ref());
+                        edge_data_ids.remove(edge_data_id.as_ref());
+
+                        Ok::<(Batch, Batch, Batch, Batch), SledTripleStoreError>((
+                            spo_batch,
+                            pos_batch,
+                            osp_batch,
+                            edge_data_ids,
+                        ))
+                    },
+                )?;
+
+        // Remove the NodeProps, EdgeProps, and edges in one transaction.
+        (
+            &self.node_props,
+            &self.edge_props,
+            &self.spo_data,
+            &self.pos_data,
+            &self.osp_data,
+        )
+            .transaction(|(node_props, edge_props, spo_data, pos_data, osp_data)| {
+                node_props.remove(node.borrow().to_be_bytes().as_ref())?;
+
+                edge_props.apply_batch(&edge_props_forward_batch)?;
+                edge_props.apply_batch(&edge_props_backward_batch)?;
+
+                spo_data.apply_batch(&spo_forward_batch)?;
+                spo_data.apply_batch(&spo_backward_batch)?;
+
+                pos_data.apply_batch(&pos_forward_batch)?;
+                pos_data.apply_batch(&pos_backward_batch)?;
+
+                osp_data.apply_batch(&osp_forward_batch)?;
+                osp_data.apply_batch(&osp_backward_batch)?;
+
+                Ok(())
+            })
+            .map_err(|e| match e {
+                sled::transaction::TransactionError::Abort(e) => e,
+                sled::transaction::TransactionError::Storage(e) => {
+                    SledTripleStoreError::SledError(e)
+                }
+            })?;
 
         Ok(())
     }
 
     fn remove_edge(&mut self, triple: Triple<Id>) -> Result<(), Self::Error> {
+        let spo_triple = Id::encode_spo_triple(&triple);
+        let pos_triple = Id::encode_pos_triple(&triple);
+        let osp_triple = Id::encode_osp_triple(&triple);
+
+        (
+            &self.spo_data,
+            &self.pos_data,
+            &self.osp_data,
+            &self.edge_props,
+        )
+            .transaction(|(spo_data, pos_data, osp_data, edge_props)| {
+                let edge_props_id = spo_data.remove(spo_triple.as_ref())?;
+                pos_data.remove(pos_triple.as_ref())?;
+                osp_data.remove(osp_triple.as_ref())?;
+                if let Some(edge_props_id) = edge_props_id {
+                    edge_props.remove(edge_props_id)?;
+                }
+                Ok(())
+            })
+            .map_err(|e| match e {
+                sled::transaction::TransactionError::Abort(e) => e,
+                sled::transaction::TransactionError::Storage(e) => {
+                    SledTripleStoreError::SledError(e)
+                }
+            })?;
+
         let edge_data_id = self
             .spo_data
             .remove(Id::encode_spo_triple(&triple))
