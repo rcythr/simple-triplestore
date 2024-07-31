@@ -174,7 +174,7 @@ pub enum TryEqError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
 /// Represents a query which can be executed on a [TripleStore][crate::TripleStore].
 ///
 /// These are most easily created using teh [query][crate::query] macro.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Query<Id: IdType> {
     /// Fetch the NodeProps for the given set of ids.
     NodeProps(HashSet<Id>),
@@ -199,6 +199,12 @@ pub enum Query<Id: IdType> {
 
     /// Fetch all edges which have one of the given tuples as subject and predicate.
     SP(HashSet<(Id, Id)>),
+}
+
+impl<Id: IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<Id> {
+    fn from(value: I) -> Self {
+        Query::SPO(value.into_iter().map(|t| (t.sub, t.pred, t.obj)).collect())
+    }
 }
 
 /// Syntactic sugar macro for constructing [Query] objects which can be used in [crate::TripleStoreQuery::run()].
