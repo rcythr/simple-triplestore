@@ -1,11 +1,11 @@
 [package]
 name = "simple-triplestore"
-version = "0.0.2"
+version = "0.1.0"
 edition = "2021"
 authors = ["rcythr"]
 license = "Apache-2.0"
 description = "A simple graph database for storing triples with support for custom node and edge properties."
-repository = "https://github.com/rcythr/simple_triplestore"
+repository = "https://github.com/rcythr/simple-triplestore"
 keywords = ["database", "graph", "triple"]
 categories = ["data-structures", "database-implementations"]
 
