@@ -1,5 +1,3 @@
-use ulid::Ulid;
-
 use crate::{Property, Triple, TripleStoreError};
 
 use super::id_type::IdType;

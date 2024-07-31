@@ -1,4 +1,9 @@
-use crate::{IdType, Triple};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+
+use crate::{traits::IdGenerator, IdType, Triple};
 
 impl IdType for u64 {
     type ByteArrayType = [u8; 8];
@@ -103,5 +108,29 @@ impl IdType for u64 {
                 obj: u64::MAX,
             })),
         )
+    }
+}
+
+struct U64IdGenerator {
+    state: Arc<AtomicU64>,
+}
+
+impl U64IdGenerator {
+    pub fn new(initial_value: u64) -> Self {
+        Self {
+            state: Arc::new(AtomicU64::new(initial_value)),
+        }
+    }
+}
+
+impl IdGenerator<u64> for U64IdGenerator {
+    fn clone(&self) -> Box<dyn IdGenerator<u64>> {
+        Box::new(Self {
+            state: self.state.clone(),
+        })
+    }
+
+    fn fresh(&mut self) -> u64 {
+        self.state.fetch_add(1, Ordering::SeqCst)
     }
 }

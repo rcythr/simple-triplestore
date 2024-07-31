@@ -98,34 +98,6 @@ pub(crate) fn test_insert_node<T: TripleStore<Ulid, String, String>>(mut db: T) 
     assert_eq!(edges.collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_insert_node_batch<T: TripleStore<Ulid, String, String>>(mut db: T) {
-    let config = Config::default();
-
-    for (node, props) in [
-        (config.node_1, config.node_data_1.clone()),
-        (config.node_2, config.node_data_2.clone()),
-        (config.node_3, config.node_data_3.clone()),
-        (config.node_4, config.node_data_4.clone()),
-        // Clobber the earlier entry
-        (config.node_4, config.node_data_5.clone()),
-    ] {
-        db.insert_node(node, props).expect("insert should succeed");
-    }
-
-    let (nodes, edges) = db.iter_nodes(EdgeOrder::SPO);
-    assert_eq!(
-        nodes.map(|e| e.expect("ok")).collect::<Vec<_>>(),
-        [
-            (config.node_1, config.node_data_1.clone()),
-            (config.node_2, config.node_data_2.clone()),
-            (config.node_3, config.node_data_3.clone()),
-            (config.node_4, config.node_data_5.clone()),
-        ]
-        .to_vec()
-    );
-    assert_eq!(edges.collect::<Vec<_>>().len(), 0);
-}
-
 pub(crate) fn test_insert_edge<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 

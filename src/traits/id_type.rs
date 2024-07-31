@@ -1,5 +1,3 @@
-use sled::IVec;
-
 use crate::Triple;
 
 pub trait IdType:

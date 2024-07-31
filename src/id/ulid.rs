@@ -103,12 +103,15 @@ impl IdType for Ulid {
     }
 }
 
-#[derive(Clone)]
-pub struct UlidIdGenerator {}
+pub struct UlidIdGenerator {
+    state: ulid::Generator,
+}
 
 impl UlidIdGenerator {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            state: ulid::Generator::new(),
+        }
     }
 }
 
@@ -118,7 +121,7 @@ impl IdGenerator<Ulid> for UlidIdGenerator {
     }
 
     fn fresh(&mut self) -> Ulid {
-        Ulid::new()
+        self.state.generate().unwrap_or_else(|_| Ulid::new())
     }
 }
 

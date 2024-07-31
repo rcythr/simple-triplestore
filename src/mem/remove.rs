@@ -1,7 +1,5 @@
 use std::borrow::Borrow;
 
-use ulid::Ulid;
-
 use crate::{traits::IdType, Property, Triple, TripleStoreRemove};
 
 use super::MemTripleStore;

@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 
-use ulid::Ulid;
-
 use crate::{
     traits::IdType, EdgeOrder, Property, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter,
 };

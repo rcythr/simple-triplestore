@@ -1,6 +1,5 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::IVec;
-use ulid::Ulid;
 
 use crate::traits::IdType;
 use crate::EdgeOrder;

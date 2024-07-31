@@ -1,5 +1,3 @@
-use ulid::Ulid;
-
 mod key_bounds;
 
 use crate::{IdType, Property};

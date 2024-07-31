@@ -111,7 +111,7 @@ impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeabl
 
 #[cfg(test)]
 mod test {
-    use crate::{prelude::*, traits::IdGenerator};
+    use crate::prelude::*;
 
     #[test]
     fn test_merge() {

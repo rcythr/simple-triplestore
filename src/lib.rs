@@ -48,8 +48,7 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 
-mod id;
-mod mergeable;
+pub mod id;
 
 mod triple;
 pub use crate::triple::{PropsTriple, Triple};
