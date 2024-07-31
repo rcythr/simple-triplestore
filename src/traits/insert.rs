@@ -1,6 +1,8 @@
-use crate::{Property, Triple, TripleStoreError};
-
-use super::id_type::IdType;
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Triple,
+};
 
 /// A trait for insertion operations in [TripleStore]s.
 ///

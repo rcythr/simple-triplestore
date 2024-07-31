@@ -1,6 +1,12 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{prelude::*, traits::IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    MemTripleStore, Query, QueryError, Triple,
+};
+
+use super::SledTripleStore;
 
 impl<
         Id: IdType,
@@ -248,7 +254,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_query_node_props() {

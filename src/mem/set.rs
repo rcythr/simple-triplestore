@@ -1,6 +1,12 @@
 use std::collections::HashSet;
 
-use crate::{prelude::*, traits::IdType, EdgeOrder, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    EdgeOrder, SetOpsError,
+};
+
+use super::MemTripleStore;
 
 impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreSetOps<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
@@ -191,7 +197,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_union() {

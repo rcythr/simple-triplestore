@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    traits::IdType, EdgeOrder, Property, PropsTriple, Triple, TripleStoreIntoIter, TripleStoreIter,
+    prelude::*,
+    traits::{IdType, Property},
+    EdgeOrder, PropsTriple, Triple,
 };
 
 use super::MemTripleStore;
@@ -211,7 +213,7 @@ impl<Id: IdType, NodeProps: Property + PartialEq, EdgeProps: Property + PartialE
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_iter_spo() {

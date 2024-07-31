@@ -1,6 +1,6 @@
 use ulid::Ulid;
 
-use crate::prelude::*;
+use crate::{prelude::*, Triple};
 
 use super::TestMergeable;
 

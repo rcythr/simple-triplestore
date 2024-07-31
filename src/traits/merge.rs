@@ -1,4 +1,8 @@
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Mergeable, Property},
+    Triple,
+};
 
 /// Wrapper for errors resulting from [TripleStoreMerge::merge()]
 #[derive(Debug)]

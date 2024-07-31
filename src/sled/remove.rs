@@ -2,14 +2,12 @@ use std::borrow::Borrow;
 
 use serde::{de::DeserializeOwned, Serialize};
 use sled::Batch;
-use sled::IVec;
 use sled::Transactional;
 
-use crate::traits::IdType;
-use crate::{prelude::*, Property};
+use crate::Triple;
+use crate::{prelude::*, sled::SledTripleStoreError, traits::IdType, traits::Property};
 
 use super::SledTripleStore;
-use super::SledTripleStoreError;
 
 impl<
         Id: IdType,
@@ -173,7 +171,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_remove_node() {

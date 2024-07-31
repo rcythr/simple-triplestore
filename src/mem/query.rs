@@ -1,4 +1,8 @@
-use crate::{prelude::*, traits::IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Query, QueryError, Triple,
+};
 
 use super::MemTripleStore;
 
@@ -138,7 +142,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_query_node_props() {

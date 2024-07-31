@@ -1,7 +1,11 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::Transactional;
 
-use crate::{traits::IdType, Property, Triple, TripleStoreInsert};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Triple,
+};
 
 use super::{SledTripleStore, SledTripleStoreError};
 
@@ -63,7 +67,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_insert_node() {

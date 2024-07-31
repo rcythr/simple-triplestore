@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use ulid::Ulid;
 
-use crate::prelude::*;
+use crate::{prelude::*, Query, Triple};
 
 #[derive(Clone)]
 struct Config {

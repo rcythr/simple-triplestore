@@ -1,4 +1,8 @@
-use crate::{prelude::*, traits::IdGenerator, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    IdGenerator,
+};
 use serde::{de::DeserializeOwned, Serialize};
 
 mod extend;

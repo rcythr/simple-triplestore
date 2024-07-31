@@ -1,6 +1,6 @@
 use ulid::Ulid;
 
-use crate::prelude::*;
+use crate::{prelude::*, EdgeOrder, Triple};
 
 struct Config {
     node_1: Ulid,

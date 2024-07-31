@@ -1,161 +1,60 @@
-//!
-//! ```text
-//!            ██████╗  ██████╗██╗   ██╗████████╗██╗  ██╗██████╗  █╗ ███████╗
-//!            ██╔══██╗██╔════╝╚██╗ ██╔╝╚══██╔══╝██║  ██║██╔══██╗ ╚╝ ██╔════╝
-//!            ██████╔╝██║      ╚████╔╝    ██║   ███████║██████╔╝    ███████╗
-//!            ██╔══██╗██║       ╚██╔╝     ██║   ██╔══██║██╔══██╗    ╚════██║
-//!            ██║  ██║╚██████╗   ██║      ██║   ██║  ██║██║  ██║    ███████║
-//!            ╚═╝  ╚═╝ ╚═════╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝    ╚══════╝
-//!
-//!                          ____ _ _  _ ___  _    ____
-//!                          [__  | |\/| |__] |    |___
-//!                          ___] | |  | |    |___ |___
-//!
-//!                                                 
-//!  ████████╗██████╗ ██╗██████╗ ██╗     ███████╗███████╗████████╗ ██████╗ ██████╗ ███████╗
-//!  ╚══██╔══╝██╔══██╗██║██╔══██╗██║     ██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝
-//!     ██║   ██████╔╝██║██████╔╝██║     █████╗  ███████╗   ██║   ██║   ██║██████╔╝█████╗  
-//!     ██║   ██╔══██╗██║██╔═══╝ ██║     ██╔══╝  ╚════██║   ██║   ██║   ██║██╔══██╗██╔══╝  
-//!     ██║   ██║  ██║██║██║     ███████╗███████╗███████║   ██║   ╚██████╔╝██║  ██║███████╗
-//!     ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝     ╚══════╝╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
-//!```
-//!
-//!
-//! A [triplestore](https://en.wikipedia.org/wiki/Triplestore) which can be used as a flexible graph database with support for custom node and edge properties.
+//! A [triplestore](https://en.wikipedia.org/wiki/Triplestore) implementation which can be used as a flexible graph database with support for custom node and edge properties.
 //!
 //! ## Data Model
-//! Each node and edge is assigned an [Ulid]. Property data is then associated with this id using key-value storage.
+//! Each vertex and edge (collectively called `nodes`) are associated with an id (i.e. `u64` or [Ulid](https://docs.rs/ulid/latest/ulid/struct.Ulid.html)).
 //!
-//! Graph relationships are stored three times as `(Ulid, Ulid, Ulid) -> Ulid` with the following key orders:
+//! Property data is stored as
+//!   * `Id -> NodeProps`
+//!   * `Id -> EdgeProps`.
+//!
+//! Graph relationships are stored three times as <code>(Id, Id, Id) -> Id</code> with the following sort orders:
 //!   * Subject, Predicate, Object
 //!   * Predicate, Object, Subject
 //!   * Object, Subject, Predicate
 //!
-//! This allows for any graph query to be decomposed into a range query on the lookup with the ideal ordering.
+//! This allows for any graph query to be decomposed into a range query on the lookup with the ideal ordering. For example,
 //!
-//! ## Query
+//! * `query!{ a -b-> ? }` becomes a query on the subject-predicate-object table.
+//! * `query!{ ? -a-> b }` becomes a query on the position-object-subject table.
+//! * `query!{ a -?-> b }` becomes a query on the object-subject-position table.
 //!
 //! ## Supported Key-Value Backends
-//!
-//!   * [Memory][MemTripleStore] ( via [std::collections::BTreeMap] )
-//!
-//!   * [Sled][SledTripleStore]
-//!
-
-pub mod prelude;
+//!   * [Memory](https://docs.rs/simple-triplestore/latest/simple_triplestore/struct.MemTripleStore.html)
+//!   * [Sled](https://docs.rs/simple-triplestore/latest/simple_triplestore/struct.SledTripleStore.html) ( with the `sled` feature )
 
 use std::collections::HashSet;
 
-use itertools::Itertools;
-
 pub mod id;
-
-mod triple;
-pub use crate::triple::{PropsTriple, Triple};
-
-mod traits;
-use traits::{
-    IdType, Mergeable, TripleStoreExtend, TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter,
-    TripleStoreQuery, TripleStoreRemove,
-};
+pub mod mem;
+pub mod prelude;
+#[cfg(feature = "sled")]
+pub mod sled;
 
 #[cfg(test)]
 mod conformance;
+pub mod traits;
+pub mod triple;
 
-mod mem;
-pub use crate::mem::MemTripleStore;
+pub use crate::{
+    id::ulid::UlidIdGenerator,
+    mem::MemTripleStore,
+    traits::{ExtendError, IdGenerator, MergeError, Mergeable, QueryError, SetOpsError},
+    triple::{PropsTriple, Triple},
+};
 
 #[cfg(feature = "sled")]
-pub mod sled;
-#[cfg(feature = "sled")]
-pub use crate::sled::SledTripleStore;
+pub use crate::sled::{SledTripleStore, SledTripleStoreError};
 
-/// A trait representing a graph constructed of vertices and edges, collectively referred to as nodes.
-///
-/// Nodes and Edges may be annotated with any type which supports to [PropertyType].
-///
-/// By default includes:
-///   * [Insert][TripleStoreInsert]
-///   * [Remove][TripleStoreRemove]
-///   * [Iter][TripleStoreIter]
-///   * [IntoIter][TripleStoreIntoIter]
-///   * [Query][TripleStoreQuery]
-///   * [Extend][TripleStoreExtend]
-///
-/// Some implementations may also support:
-///   * [Merge][TripleStoreMerge]
-///   * [Set Operations][TripleStoreSetOps]
-///
-/// # Example
-///
-/// See [MemTripleStore] or [SledTripleStore] for usage.
-pub trait TripleStore<Id: IdType, NodeProps: Property, EdgeProps: Property>:
-    TripleStoreInsert<Id, NodeProps, EdgeProps>
-    + TripleStoreRemove<Id, NodeProps, EdgeProps>
-    + TripleStoreIter<Id, NodeProps, EdgeProps>
-    + TripleStoreIntoIter<Id, NodeProps, EdgeProps>
-    + TripleStoreQuery<Id, NodeProps, EdgeProps>
-    + TripleStoreExtend<Id, NodeProps, EdgeProps>
-{
-    fn try_eq<OError: std::fmt::Debug>(
-        &self,
-        other: &impl TripleStore<Id, NodeProps, EdgeProps, Error = OError>,
-    ) -> Result<bool, crate::TryEqError<Self::Error, OError>> {
-        let (self_nodes, self_edges) = self.iter_nodes(EdgeOrder::SPO);
-        let self_nodes = self_nodes.map(|r| r.map_err(|e| TryEqError::Left(e)));
-        let self_edges = self_edges.map(|r| r.map_err(|e| TryEqError::Left(e)));
-
-        let (other_nodes, other_edges) = other.iter_nodes(EdgeOrder::SPO);
-        let other_nodes = other_nodes.map(|r| r.map_err(|e| TryEqError::Right(e)));
-        let other_edges = other_edges.map(|r| r.map_err(|e| TryEqError::Right(e)));
-
-        for zip in self_nodes.zip_longest(other_nodes) {
-            match zip {
-                itertools::EitherOrBoth::Both(left, right) => {
-                    let left = left?;
-                    let right = right?;
-                    if left != right {
-                        return Ok(false);
-                    }
-                }
-                _ => {
-                    return Ok(false);
-                }
-            }
-        }
-
-        for zip in self_edges.zip_longest(other_edges) {
-            match zip {
-                itertools::EitherOrBoth::Both(left, right) => {
-                    let left = left?;
-                    let right = right?;
-                    if left != right {
-                        return Ok(false);
-                    }
-                }
-                _ => {
-                    return Ok(false);
-                }
-            }
-        }
-
-        Ok(true)
-    }
-}
-
-// Marker trait for all types which are supported as TripleStore properties.
-pub trait Property: Clone + std::fmt::Debug + PartialEq {}
-impl<T: Clone + std::fmt::Debug + PartialEq> Property for T {}
-
-/// A trait that encapsulates the error type used by other traits in the library.
-pub trait TripleStoreError {
-    type Error: std::fmt::Debug;
-}
-
+/// The order for edges which should be returned.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EdgeOrder {
+    /// Subject, Predicate, Object
     SPO,
+
+    /// Predicate, Object, Subject,
     POS,
+
+    /// Object, Subject, Predicate
     OSP,
 }
 
@@ -165,17 +64,11 @@ impl Default for EdgeOrder {
     }
 }
 
-#[derive(Debug)]
-pub enum TryEqError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
-    Left(LeftError),
-    Right(RightError),
-}
-
 /// Represents a query which can be executed on a [TripleStore][crate::TripleStore].
 ///
 /// These are most easily created using teh [query][crate::query] macro.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Query<Id: IdType> {
+pub enum Query<Id: traits::IdType> {
     /// Fetch the NodeProps for the given set of ids.
     NodeProps(HashSet<Id>),
 
@@ -201,7 +94,7 @@ pub enum Query<Id: IdType> {
     SP(HashSet<(Id, Id)>),
 }
 
-impl<Id: IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<Id> {
+impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<Id> {
     fn from(value: I) -> Self {
         Query::SPO(value.into_iter().map(|t| (t.sub, t.pred, t.obj)).collect())
     }

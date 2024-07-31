@@ -1,4 +1,8 @@
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    EdgeOrder, PropsTriple, Triple,
+};
 
 pub trait TripleStoreIntoIter<Id: IdType, NodeProps: Property, EdgeProps: Property>:
     TripleStoreError

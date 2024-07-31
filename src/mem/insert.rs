@@ -1,4 +1,4 @@
-use crate::{traits::IdType, Property, Triple, TripleStoreInsert};
+use crate::{prelude::*, traits::IdType, traits::Property, Triple};
 
 use super::MemTripleStore;
 
@@ -64,9 +64,8 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
 
 #[cfg(test)]
 mod test {
+    use crate::{MemTripleStore, UlidIdGenerator};
     use ulid::Ulid;
-
-    use crate::prelude::*;
 
     #[test]
     fn test_insert_node() {

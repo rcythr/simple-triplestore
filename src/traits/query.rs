@@ -1,4 +1,8 @@
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Query,
+};
 
 #[derive(Debug)]
 pub enum QueryError<SourceError: std::fmt::Debug, ResultError: std::fmt::Debug> {

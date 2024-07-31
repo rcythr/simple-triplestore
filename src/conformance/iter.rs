@@ -1,6 +1,6 @@
 use ulid::Ulid;
 
-use crate::prelude::*;
+use crate::{prelude::*, PropsTriple, Triple};
 
 #[derive(Clone)]
 struct Config {

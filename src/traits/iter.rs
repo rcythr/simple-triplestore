@@ -1,4 +1,8 @@
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    EdgeOrder, PropsTriple, Triple,
+};
 
 // Iteration functions which do not consume the TripleStore.
 pub trait TripleStoreIter<Id: IdType, NodeProps: Property, EdgeProps: Property>:

@@ -1,6 +1,9 @@
-use crate::{traits::IdType, Mergeable, Property, Triple};
+use crate::{
+    traits::{IdType, Mergeable, Property},
+    MergeError, Triple,
+};
 
-use super::{MemTripleStore, MergeError, TripleStore, TripleStoreMerge};
+use super::{MemTripleStore, TripleStore, TripleStoreMerge};
 
 impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
     MemTripleStore<Id, NodeProps, EdgeProps>
@@ -77,7 +80,7 @@ impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeabl
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_merge() {

@@ -1,6 +1,6 @@
 use ulid::Ulid;
 
-use crate::{traits::IdGenerator, IdType, Triple};
+use crate::{traits::IdGenerator, traits::IdType, Triple};
 
 impl IdType for Ulid {
     type ByteArrayType = [u8; 16];

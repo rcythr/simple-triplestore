@@ -3,7 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use crate::{traits::IdGenerator, IdType, Triple};
+use crate::{traits::IdGenerator, traits::IdType, Triple};
 
 impl IdType for u64 {
     type ByteArrayType = [u8; 8];

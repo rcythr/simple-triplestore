@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{prelude::*, Triple};
 use ulid::Ulid;
 
 struct Config {

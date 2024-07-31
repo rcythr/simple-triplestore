@@ -1,13 +1,8 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::IVec;
 
-use crate::traits::IdType;
-use crate::EdgeOrder;
-use crate::Property;
-use crate::PropsTriple;
-use crate::Triple;
-use crate::TripleStoreIntoIter;
-use crate::TripleStoreIter;
+use crate::{prelude::*, traits::IdType, traits::Property};
+use crate::{EdgeOrder, PropsTriple, Triple};
 
 use super::SledTripleStore;
 use super::SledTripleStoreError;
@@ -429,7 +424,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_iter_spo() {

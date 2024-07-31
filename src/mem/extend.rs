@@ -1,6 +1,6 @@
-use crate::{IdType, Property, TripleStore, TripleStoreExtend};
+use crate::{prelude::*, traits::IdType, traits::Property, ExtendError};
 
-use super::{ExtendError, MemTripleStore};
+use super::MemTripleStore;
 
 impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreExtend<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
@@ -66,7 +66,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_extend() {

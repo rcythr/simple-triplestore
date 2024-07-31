@@ -1,7 +1,8 @@
 mod key_bounds;
 
-use crate::{IdType, Property};
+use crate::{traits::IdType, traits::Property};
 
+/// The three components of an edge (subject, predicate, object)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Triple<Id: IdType> {
     pub sub: Id,
@@ -30,7 +31,7 @@ impl<Id: IdType> PartialOrd for Triple<Id> {
     }
 }
 
-// A triple along with the associated Node and Edge properties for .
+/// A triple along with the associated NodeProps and EdgeProps.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PropsTriple<Id: IdType, NodeProps: Property, EdgeProps: Property> {
     pub sub: (Id, NodeProps),

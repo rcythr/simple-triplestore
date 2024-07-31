@@ -1,4 +1,8 @@
-use crate::{prelude::*, traits::IdGenerator, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    IdGenerator,
+};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::{Hash, Hasher},

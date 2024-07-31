@@ -2,7 +2,9 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use simple_triplestore::prelude::*;
+use simple_triplestore::{
+    prelude::*, MemTripleStore, Query, SledTripleStore, Triple, UlidIdGenerator,
+};
 use ulid::Ulid;
 
 fn bench_insert_node(c: &mut Criterion) {

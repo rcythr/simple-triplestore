@@ -1,6 +1,10 @@
 use std::borrow::Borrow;
 
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Triple,
+};
 
 /// Removal operations for TripleStores.
 pub trait TripleStoreRemove<Id: IdType, NodeProps: Property, EdgeProps: Property>:

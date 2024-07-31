@@ -1,4 +1,4 @@
-use crate::{prelude::*, IdType, Property};
+use crate::{prelude::*, traits::IdType, traits::Property};
 
 /// Wrapper for errors resulting from [TripleStoreExtend::extend()]
 #[derive(Debug)]

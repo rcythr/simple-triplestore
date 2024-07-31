@@ -2,9 +2,13 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use ulid::Ulid;
 
-use crate::{prelude::*, IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    ExtendError,
+};
 
-use super::SledTripleStoreError;
+use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
         Id: IdType,
@@ -63,7 +67,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_extend() {

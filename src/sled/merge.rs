@@ -1,9 +1,13 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::transaction::{ConflictableTransactionError, Transactional};
 
-use crate::{prelude::*, traits::IdType, Property};
+use crate::{
+    prelude::*,
+    traits::{IdType, Mergeable, Property},
+    MergeError, Triple,
+};
 
-use super::SledTripleStoreError;
+use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
         Id: IdType,
@@ -158,7 +162,7 @@ impl<
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{SledTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_merge() {

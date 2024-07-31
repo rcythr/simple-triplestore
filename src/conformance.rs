@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Mergeable;
+use crate::traits::Mergeable;
 
 pub mod extend;
 pub mod insert;

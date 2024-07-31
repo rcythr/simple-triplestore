@@ -1,6 +1,10 @@
 use std::borrow::Borrow;
 
-use crate::{traits::IdType, Property, Triple, TripleStoreRemove};
+use crate::{
+    prelude::*,
+    traits::{IdType, Property},
+    Triple,
+};
 
 use super::MemTripleStore;
 
@@ -80,7 +84,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{MemTripleStore, UlidIdGenerator};
 
     #[test]
     fn test_remove_node() {

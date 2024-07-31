@@ -1,32 +1,29 @@
+mod error;
 mod extend;
-pub use extend::*;
-
-mod id_type;
-pub use id_type::*;
-
-mod insert;
-pub use insert::*;
-
-mod into_iter;
-pub use into_iter::*;
-
-mod iter;
-pub use iter::*;
-
-mod merge;
-pub use merge::*;
-
-mod mergeable;
-pub use mergeable::*;
-
-mod query;
-pub use query::*;
-
-mod remove;
-pub use remove::*;
-
-mod set;
-pub use set::*;
-
 mod id_generator;
+mod id_type;
+mod insert;
+mod into_iter;
+mod iter;
+mod merge;
+mod mergeable;
+mod property;
+mod query;
+mod remove;
+mod set;
+mod triplestore;
+
+pub use error::*;
+pub use extend::*;
 pub use id_generator::*;
+pub use id_type::*;
+pub use insert::*;
+pub use into_iter::*;
+pub use iter::*;
+pub use merge::*;
+pub use mergeable::*;
+pub use property::*;
+pub use query::*;
+pub use remove::*;
+pub use set::*;
+pub use triplestore::*;
