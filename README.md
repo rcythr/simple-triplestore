@@ -7,16 +7,16 @@
 A [triplestore](https://en.wikipedia.org/wiki/Triplestore) implementation which can be used as a flexible graph database with support for custom node and edge properties.
 
 ## Data Model
-Each node and edge is assigned an id (i.e. `u64` or [Ulid](https://docs.rs/ulid/latest/ulid/struct.Ulid.html)). 
-
-Graph relationships are stored three times as <code>(Id, Id, Id) -> Id</code> with the following key orders:
-  * Subject, Predicate, Object
-  * Predicate, Object, Subject
-  * Object, Subject, Predicate
+Each vertex and edge (collectively called `nodes`) are associated with an id (i.e. `u64` or [Ulid](https://docs.rs/ulid/latest/ulid/struct.Ulid.html)). 
 
 Property data is stored as 
   * `Id -> NodeProps`
   * `Id -> EdgeProps`.
+
+Graph relationships are stored three times as <code>(Id, Id, Id) -> Id</code> with the following sort orders:
+  * Subject, Predicate, Object
+  * Predicate, Object, Subject
+  * Object, Subject, Predicate
 
 This allows for any graph query to be decomposed into a range query on the lookup with the ideal ordering. For example,
 
