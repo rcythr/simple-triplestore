@@ -1,4 +1,8 @@
-# simple-triplestore &emsp; ![docs.rs (with version)](https://img.shields.io/docsrs/simple-triplestore/0.0.2?label=docs) ![Crates.io Version](https://img.shields.io/crates/v/simple-triplestore) 
+# simple-triplestore &emsp; [![Latest Docs]][docs.rs] [![Latest Crate]][crates.io]
+[Latest Docs]: https://img.shields.io/docsrs/simple-triplestore/0.0.2?label=docs
+[Latest Crate]: https://img.shields.io/crates/v/simple-triplestore
+[docs.rs]: https://docs.rs/simple-triplestore/latest/
+[crates.io]: https://crates.io/crates/simple-triplestore
 
 A [triplestore](https://en.wikipedia.org/wiki/Triplestore) implementation which can be used as a flexible graph database with support for custom node and edge properties.
 
