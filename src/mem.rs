@@ -1,9 +1,8 @@
-use crate::{prelude::*, PropertyType};
+use crate::{prelude::*, traits::IdGenerator, IdType, Property};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     hash::{Hash, Hasher},
 };
-use ulid::Ulid;
 
 mod extend;
 mod insert;
@@ -19,7 +18,7 @@ mod set;
 /// ```
 /// # use ulid::Ulid;
 /// # use simple_triplestore::prelude::*;
-/// let mut db = MemTripleStore::new();
+/// let mut db = MemTripleStore::new(UlidIdGenerator::new());
 ///
 /// // Get some identifiers. These will probably come from an index such as `Readable Name -> Ulid`
 /// let node_1 = Ulid(123);
@@ -70,7 +69,7 @@ mod set;
 /// ```
 /// # use ulid::Ulid;
 /// # use simple_triplestore::prelude::*;
-/// # let mut db = MemTripleStore::new();
+/// # let mut db = MemTripleStore::new(UlidIdGenerator::new());
 /// # let node_1 = Ulid(123);
 /// # let node_2 = Ulid(456);
 /// # let node_3 = Ulid(789);
@@ -105,17 +104,17 @@ mod set;
 ///
 /// # Ok::<(), QueryError<(), ()>>(())
 /// ```
-#[derive(Clone)]
-pub struct MemTripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType> {
-    node_props: BTreeMap<Ulid, NodeProperties>,
-    edge_props: BTreeMap<Ulid, EdgeProperties>,
-    spo_data: BTreeMap<[u8; 48], Ulid>,
-    pos_data: BTreeMap<[u8; 48], Ulid>,
-    osp_data: BTreeMap<[u8; 48], Ulid>,
+pub struct MemTripleStore<Id: IdType, NodeProps: Property, EdgeProps: Property> {
+    node_props: BTreeMap<Id, NodeProps>,
+    edge_props: BTreeMap<Id, EdgeProps>,
+    spo_data: BTreeMap<Id::TripleByteArrayType, Id>,
+    pos_data: BTreeMap<Id::TripleByteArrayType, Id>,
+    osp_data: BTreeMap<Id::TripleByteArrayType, Id>,
+    id_generator: Box<dyn IdGenerator<Id>>,
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property> std::fmt::Debug
+    for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("MemTripleStore:\n")?;
@@ -170,10 +169,9 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
             }
         }
 
-        f.write_str(" Edge Properties:\n")?;
         f.write_str(" Edges (SPO):\n")?;
         for (triple, ulid) in self.spo_data.iter() {
-            let triple = Triple::decode_spo(&triple);
+            let triple = Id::decode_spo_triple(&triple);
             f.write_fmt(format_args!(
                 "  ({}, {}, {}) -> ",
                 triple.sub, triple.pred, triple.obj
@@ -190,7 +188,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
 
         f.write_str(" Edges (POS):\n")?;
         for (triple, ulid) in self.pos_data.iter() {
-            let triple = Triple::decode_pos(&triple);
+            let triple = Id::decode_pos_triple(&triple);
             f.write_fmt(format_args!(
                 "  ({}, {}, {}) -> ",
                 triple.sub, triple.pred, triple.obj
@@ -207,7 +205,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
 
         f.write_str(" Edges (OSP):\n")?;
         for (triple, ulid) in self.osp_data.iter() {
-            let triple = Triple::decode_osp(&triple);
+            let triple = Id::decode_osp_triple(&triple);
             f.write_fmt(format_args!(
                 "  ({}, {}, {}) -> ",
                 triple.sub, triple.pred, triple.obj
@@ -226,8 +224,8 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> std::fmt::Debug
     }
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property> PartialEq
+    for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn eq(&self, other: &Self) -> bool {
         if !self.node_props.eq(&other.node_props) {
@@ -235,7 +233,7 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
         }
 
         // We expect edge data to be identical, so zip them together and test that they match.
-        let mut cached_comparisons: HashSet<(Ulid, Ulid)> = HashSet::new();
+        let mut cached_comparisons: HashSet<(Id, Id)> = HashSet::new();
         let mut eq_edge_prop_by_id = |self_edge_prop_id, other_edge_prop_id| {
             let self_edge_props = self.edge_props.get(&self_edge_prop_id);
             let other_edge_props = other.edge_props.get(&other_edge_prop_id);
@@ -259,17 +257,18 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
             }
         };
 
-        let mut check_edge = move |(
-            (self_edge, self_edge_prop_id),
-            (other_edge, other_edge_prop_id),
-        ): ((&[u8; 48], &Ulid), (&[u8; 48], &Ulid))| {
-            // Test the Keys
-            if self_edge.ne(other_edge) {
-                return false;
-            }
-            // Test the Values
-            eq_edge_prop_by_id(self_edge_prop_id.clone(), other_edge_prop_id.clone())
-        };
+        let mut check_edge =
+            move |((self_edge, self_edge_prop_id), (other_edge, other_edge_prop_id)): (
+                (&Id::TripleByteArrayType, &Id),
+                (&Id::TripleByteArrayType, &Id),
+            )| {
+                // Test the Keys
+                if self_edge.ne(other_edge) {
+                    return false;
+                }
+                // Test the Values
+                eq_edge_prop_by_id(self_edge_prop_id.clone(), other_edge_prop_id.clone())
+            };
 
         // SPO
         for edge_pair in self.spo_data.iter().zip(other.spo_data.iter()) {
@@ -282,27 +281,34 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> PartialEq
     }
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+    MemTripleStore<Id, NodeProps, EdgeProps>
 {
-    pub fn new() -> Self {
+    pub fn new(id_generator: impl IdGenerator<Id> + 'static) -> Self {
+        Self::new_from_boxed_id_generator(Box::new(id_generator))
+    }
+
+    pub(crate) fn new_from_boxed_id_generator(
+        id_generator: Box<dyn IdGenerator<Id> + 'static>,
+    ) -> Self {
         Self {
             node_props: BTreeMap::new(),
             edge_props: BTreeMap::new(),
             spo_data: BTreeMap::new(),
             pos_data: BTreeMap::new(),
             osp_data: BTreeMap::new(),
+            id_generator: id_generator,
         }
     }
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    TripleStore<NodeProperties, EdgeProperties> for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStore<Id, NodeProps, EdgeProps>
+    for MemTripleStore<Id, NodeProps, EdgeProps>
 {
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType> TripleStoreError
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStoreError
+    for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     type Error = ();
 }

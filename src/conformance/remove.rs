@@ -48,7 +48,7 @@ impl Default for Config {
     }
 }
 
-fn populate_graph<T: TripleStore<String, String>>(config: &Config, db: &mut T) {
+fn populate_graph<T: TripleStore<Ulid, String, String>>(config: &Config, db: &mut T) {
     for (node, props) in [
         (config.node_1, config.node_data_1.clone()),
         (config.node_2, config.node_data_2.clone()),
@@ -89,7 +89,7 @@ fn populate_graph<T: TripleStore<String, String>>(config: &Config, db: &mut T) {
     }
 }
 
-pub(crate) fn test_remove_node<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_remove_node<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
     populate_graph(&config, &mut db);
 
@@ -135,7 +135,7 @@ pub(crate) fn test_remove_node<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_remove_edge<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_remove_edge<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
     populate_graph(&config, &mut db);
 

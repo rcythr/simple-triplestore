@@ -1,7 +1,5 @@
-use crate::{prelude::*, PropertyType};
+use crate::{prelude::*, traits::IdGenerator, IdType, Property};
 use serde::{de::DeserializeOwned, Serialize};
-use sled::IVec;
-use ulid::Ulid;
 
 mod extend;
 mod insert;
@@ -11,11 +9,23 @@ mod query;
 mod remove;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum SledTripleStoreError {
     SledError(sled::Error),
     SerializationError(bincode::Error),
     KeySizeError,
     MissingPropertyData,
+}
+
+impl From<sled::Error> for SledTripleStoreError {
+    fn from(e: sled::Error) -> Self {
+        SledTripleStoreError::SledError(e)
+    }
+}
+
+impl From<bincode::Error> for SledTripleStoreError {
+    fn from(e: bincode::Error) -> Self {
+        SledTripleStoreError::SerializationError(e)
+    }
 }
 
 /// A triplestore which is backed by [sled](https://sled.rs).
@@ -27,7 +37,7 @@ pub enum Error {
 /// let temp_dir = tempdir::TempDir::new("sled").unwrap();
 /// let sled_db = sled::open(temp_dir.path()).unwrap();
 ///
-/// let mut db = SledTripleStore::new(&sled_db)?;
+/// let mut db = SledTripleStore::new(&sled_db, UlidIdGenerator::new())?;
 ///
 /// // Get some identifiers. These will probably come from an index such as `Readable Name -> Ulid`
 /// let node_1 = Ulid(123);
@@ -71,7 +81,7 @@ pub enum Error {
 ///       obj: (node_3, "baz".to_string())}
 ///   ]
 /// );
-/// # Ok::<(), simple_triplestore::sled::Error>(())
+/// # Ok::<(), simple_triplestore::sled::SledTripleStoreError>(())
 /// ```
 ///
 /// We can do arbitrary queries, e.g.:
@@ -80,7 +90,7 @@ pub enum Error {
 /// # use simple_triplestore::prelude::*;
 /// # let temp_dir = tempdir::TempDir::new("sled").unwrap();
 /// # let sled_db = sled::open(temp_dir.path()).unwrap();
-/// # let mut db = SledTripleStore::new(&sled_db).unwrap();
+/// # let mut db = SledTripleStore::new(&sled_db, UlidIdGenerator::new()).unwrap();
 /// # let node_1 = Ulid(123);
 /// # let node_2 = Ulid(456);
 /// # let node_3 = Ulid(789);
@@ -113,35 +123,39 @@ pub enum Error {
 ///   ]
 /// );
 ///
-/// # Ok::<(), QueryError<simple_triplestore::sled::Error, ()>>(())
+/// # Ok::<(), QueryError<simple_triplestore::sled::SledTripleStoreError, ()>>(())
 /// ```
 pub struct SledTripleStore<
-    NodeProperties: PropertyType + Serialize + DeserializeOwned,
-    EdgeProperties: Serialize + DeserializeOwned,
+    Id: IdType,
+    NodeProps: Property + Serialize + DeserializeOwned,
+    EdgeProps: Serialize + DeserializeOwned,
 > {
-    _phantom: std::marker::PhantomData<(NodeProperties, EdgeProperties)>,
+    _phantom: std::marker::PhantomData<(Id, NodeProps, EdgeProps)>,
     node_props: sled::Tree,
     edge_props: sled::Tree,
     spo_data: sled::Tree,
     pos_data: sled::Tree,
     osp_data: sled::Tree,
+    id_generator: Box<dyn IdGenerator<Id>>,
 }
 
 impl<
-        NodeProperties: PropertyType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
-    > SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > SledTripleStore<Id, NodeProps, EdgeProps>
 {
-    pub fn new(db: &sled::Db) -> Result<Self, Error> {
+    pub fn new(
+        db: &sled::Db,
+        id_generator: impl IdGenerator<Id> + 'static,
+    ) -> Result<Self, SledTripleStoreError> {
         let node_data = db
             .open_tree(b"node_data")
-            .map_err(|e| Error::SledError(e))?;
-        let edge_data = db
-            .open_tree(b"edge_data")
-            .map_err(|e| Error::SledError(e))?;
-        let spo_data = db.open_tree(b"spo_data").map_err(|e| Error::SledError(e))?;
-        let pos_data = db.open_tree(b"pos_data").map_err(|e| Error::SledError(e))?;
-        let osp_data = db.open_tree(b"osp_data").map_err(|e| Error::SledError(e))?;
+            .map_err(|e| SledTripleStoreError::SledError(e))?;
+        let edge_data = db.open_tree(b"edge_data")?;
+        let spo_data = db.open_tree(b"spo_data")?;
+        let pos_data = db.open_tree(b"pos_data")?;
+        let osp_data = db.open_tree(b"osp_data")?;
 
         Ok(Self {
             node_props: node_data,
@@ -149,33 +163,37 @@ impl<
             spo_data,
             pos_data,
             osp_data,
+            id_generator: Box::new(id_generator),
             _phantom: std::marker::PhantomData,
         })
     }
 }
 
 impl<
-        NodeProperties: PropertyType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
-    > TripleStoreError for SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > TripleStoreError for SledTripleStore<Id, NodeProps, EdgeProps>
 {
-    type Error = Error;
+    type Error = SledTripleStoreError;
 }
 
 impl<
-        NodeProperties: PropertyType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
-    > TripleStore<NodeProperties, EdgeProperties>
-    for SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > TripleStore<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
 {
 }
 
 impl<
-        NodeProperties: PropertyType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
-    > std::fmt::Debug for SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > std::fmt::Debug for SledTripleStore<Id, NodeProps, EdgeProps>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!();
         Ok(())
     }
 }
@@ -186,4 +204,3 @@ pub(crate) fn create_test_db() -> Result<(tempdir::TempDir, sled::Db), sled::Err
     let db = sled::open(temp_dir.path())?;
     Ok((temp_dir, db))
 }
-

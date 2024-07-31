@@ -52,7 +52,7 @@ impl Default for Config {
     }
 }
 
-fn build_graph<T: TripleStore<String, String>>(db: &mut T, config: Config) {
+fn build_graph<T: TripleStore<Ulid, String, String>>(db: &mut T, config: Config) {
     db.insert_node(config.node_1, config.node_props_1)
         .expect("success");
     db.insert_node(config.node_2, config.node_props_2)
@@ -93,7 +93,7 @@ fn build_graph<T: TripleStore<String, String>>(db: &mut T, config: Config) {
     .expect("success");
 }
 
-pub(crate) fn test_iter_spo<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_spo<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -122,7 +122,7 @@ pub(crate) fn test_iter_spo<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_pos<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_pos<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -151,7 +151,7 @@ pub(crate) fn test_iter_pos<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_osp<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_osp<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -180,7 +180,7 @@ pub(crate) fn test_iter_osp<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_edge_spo<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_edge_spo<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -218,7 +218,7 @@ pub(crate) fn test_iter_edge_spo<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_edge_pos<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_edge_pos<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -256,7 +256,7 @@ pub(crate) fn test_iter_edge_pos<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_edge_osp<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_edge_osp<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -294,7 +294,7 @@ pub(crate) fn test_iter_edge_osp<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_iter_node<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_iter_node<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -310,7 +310,7 @@ pub(crate) fn test_iter_node<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_into_iter_spo<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_spo<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -339,7 +339,7 @@ pub(crate) fn test_into_iter_spo<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_into_iter_pos<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_pos<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -368,7 +368,7 @@ pub(crate) fn test_into_iter_pos<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_into_iter_osp<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_osp<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -397,7 +397,7 @@ pub(crate) fn test_into_iter_osp<T: TripleStore<String, String>>(mut db: T) {
     );
 }
 
-pub(crate) fn test_into_iter_edge_spo<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_edge_spo<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -435,7 +435,7 @@ pub(crate) fn test_into_iter_edge_spo<T: TripleStore<String, String>>(mut db: T)
     );
 }
 
-pub(crate) fn test_into_iter_edge_pos<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_edge_pos<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -473,7 +473,7 @@ pub(crate) fn test_into_iter_edge_pos<T: TripleStore<String, String>>(mut db: T)
     );
 }
 
-pub(crate) fn test_into_iter_edge_osp<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_edge_osp<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());
@@ -511,7 +511,7 @@ pub(crate) fn test_into_iter_edge_osp<T: TripleStore<String, String>>(mut db: T)
     );
 }
 
-pub(crate) fn test_into_iter_node<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_into_iter_node<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     build_graph(&mut db, config.clone());

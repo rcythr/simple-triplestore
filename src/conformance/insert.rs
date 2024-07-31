@@ -54,7 +54,7 @@ impl Default for Config {
     }
 }
 
-pub(crate) fn test_insert_node<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_insert_node<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     db.insert_node(config.node_1, config.node_data_1.clone())
@@ -98,7 +98,7 @@ pub(crate) fn test_insert_node<T: TripleStore<String, String>>(mut db: T) {
     assert_eq!(edges.collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_insert_node_batch<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_insert_node_batch<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     for (node, props) in [
@@ -126,7 +126,7 @@ pub(crate) fn test_insert_node_batch<T: TripleStore<String, String>>(mut db: T) 
     assert_eq!(edges.collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_insert_edge<T: TripleStore<String, String>>(mut db: T) {
+pub(crate) fn test_insert_edge<T: TripleStore<Ulid, String, String>>(mut db: T) {
     let config = Config::default();
 
     for (node, props) in [

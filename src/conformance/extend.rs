@@ -42,7 +42,7 @@ impl Default for Config {
     }
 }
 
-fn setup_left<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
+fn setup_left<T: TripleStore<Ulid, String, String>>(config: &Config, left: &mut T) {
     // Construct the left graph to be (1, "a") -("1")-> (2, "b")
     left.insert_node(config.node_1, config.node_props_1.clone())
         .expect("success");
@@ -59,7 +59,7 @@ fn setup_left<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
     .expect("success");
 }
 
-fn setup_right<T: TripleStore<String, String>>(config: &Config, right: &mut T) {
+fn setup_right<T: TripleStore<Ulid, String, String>>(config: &Config, right: &mut T) {
     // Construct the right graph to be (3, "c") -("2")-> (1, "d")
     right
         .insert_node(config.node_3, config.node_props_3.clone())
@@ -79,7 +79,7 @@ fn setup_right<T: TripleStore<String, String>>(config: &Config, right: &mut T) {
         .expect("success");
 }
 
-pub(crate) fn test_extend<T: TripleStore<String, String>>(mut left: T, mut right: T) {
+pub(crate) fn test_extend<T: TripleStore<Ulid, String, String>>(mut left: T, mut right: T) {
     let config = Config::default();
     setup_left(&config, &mut left);
     setup_right(&config, &mut right);

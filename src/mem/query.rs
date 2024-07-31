@@ -1,24 +1,24 @@
-use crate::{prelude::*, PropertyType};
+use crate::{prelude::*, traits::IdType, Property};
 
 use super::MemTripleStore;
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    TripleStoreQuery<NodeProperties, EdgeProperties>
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+    TripleStoreQuery<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
-    type QueryResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    type QueryResult = MemTripleStore<Id, NodeProps, EdgeProps>;
     type QueryResultError = ();
 
     fn run(
         &self,
-        query: Query,
+        query: Query<Id>,
     ) -> Result<
-        MemTripleStore<NodeProperties, EdgeProperties>,
+        MemTripleStore<Id, NodeProps, EdgeProps>,
         QueryError<Self::Error, Self::QueryResultError>,
     > {
         Ok(match query {
             Query::NodeProps(nodes) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for node in nodes {
                     if let Some(data) = self.node_props.get(&node) {
                         result.node_props.insert(node, data.clone());
@@ -28,10 +28,11 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::SPO(triples) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for (sub, pred, obj) in triples.into_iter() {
                     let triple = Triple { sub, pred, obj };
-                    if let Some(data_id) = self.spo_data.get(&triple.encode_spo()) {
+                    if let Some(data_id) = self.spo_data.get(&Id::encode_spo_triple(&triple)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
                                 .insert_edge(triple, data.clone())
@@ -43,12 +44,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::S(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for sub in items {
-                    for (key, data_id) in self.spo_data.range(Triple::key_bounds_1(sub)) {
+                    for (key, data_id) in self.spo_data.range(Id::key_bounds_1(sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_spo(&key), data.clone())
+                                .insert_edge(Id::decode_spo_triple(&key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -57,12 +59,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::SP(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for (sub, pred) in items {
-                    for (key, data_id) in self.spo_data.range(Triple::key_bounds_2(sub, pred)) {
+                    for (key, data_id) in self.spo_data.range(Id::key_bounds_2(sub, pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_spo(&key), data.clone())
+                                .insert_edge(Id::decode_spo_triple(&key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -71,12 +74,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::SO(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for (sub, obj) in items {
-                    for (key, data_id) in self.osp_data.range(Triple::key_bounds_2(obj, sub)) {
+                    for (key, data_id) in self.osp_data.range(Id::key_bounds_2(obj, sub)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_osp(key), data.clone())
+                                .insert_edge(Id::decode_osp_triple(key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -85,12 +89,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::P(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for pred in items {
-                    for (key, data_id) in self.pos_data.range(Triple::key_bounds_1(pred)) {
+                    for (key, data_id) in self.pos_data.range(Id::key_bounds_1(pred)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_pos(key), data.clone())
+                                .insert_edge(Id::decode_pos_triple(key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -99,12 +104,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::PO(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for (pred, obj) in items {
-                    for (key, data_id) in self.pos_data.range(Triple::key_bounds_2(pred, obj)) {
+                    for (key, data_id) in self.pos_data.range(Id::key_bounds_2(pred, obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_pos(key), data.clone())
+                                .insert_edge(Id::decode_pos_triple(key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -113,12 +119,13 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
             }
 
             Query::O(items) => {
-                let mut result = MemTripleStore::new();
+                let mut result =
+                    MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
                 for obj in items {
-                    for (key, data_id) in self.osp_data.range(Triple::key_bounds_1(obj)) {
+                    for (key, data_id) in self.osp_data.range(Id::key_bounds_1(obj)) {
                         if let Some(data) = self.edge_props.get(&data_id) {
                             result
-                                .insert_edge(Triple::decode_osp(key), data.clone())
+                                .insert_edge(Id::decode_osp_triple(key), data.clone())
                                 .map_err(|e| QueryError::Right(e))?;
                         }
                     }
@@ -135,41 +142,45 @@ mod test {
 
     #[test]
     fn test_query_node_props() {
-        crate::conformance::query::test_query_node_props(MemTripleStore::new());
+        crate::conformance::query::test_query_node_props(MemTripleStore::new(
+            UlidIdGenerator::new(),
+        ));
     }
 
     #[test]
     fn test_query_edge_props() {
-        crate::conformance::query::test_query_edge_props(MemTripleStore::new());
+        crate::conformance::query::test_query_edge_props(MemTripleStore::new(
+            UlidIdGenerator::new(),
+        ));
     }
 
     #[test]
     fn test_query_s() {
-        crate::conformance::query::test_query_s(MemTripleStore::new());
+        crate::conformance::query::test_query_s(MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_query_sp() {
-        crate::conformance::query::test_query_sp(MemTripleStore::new());
+        crate::conformance::query::test_query_sp(MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_query_p() {
-        crate::conformance::query::test_query_p(MemTripleStore::new());
+        crate::conformance::query::test_query_p(MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_query_po() {
-        crate::conformance::query::test_query_po(MemTripleStore::new());
+        crate::conformance::query::test_query_po(MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_query_o() {
-        crate::conformance::query::test_query_o(MemTripleStore::new());
+        crate::conformance::query::test_query_o(MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_query_os() {
-        crate::conformance::query::test_query_os(MemTripleStore::new());
+        crate::conformance::query::test_query_os(MemTripleStore::new(UlidIdGenerator::new()));
     }
 }

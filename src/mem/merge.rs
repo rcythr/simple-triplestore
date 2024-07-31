@@ -1,17 +1,15 @@
-use ulid::Ulid;
+use crate::{traits::IdType, Mergeable, Property, Triple};
 
-use crate::{Mergeable, PropertyType, Triple, TripleStoreMerge};
+use super::{MemTripleStore, MergeError, TripleStore, TripleStoreMerge};
 
-use super::{MemTripleStore, MergeError, TripleStore};
-
-impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Mergeable>
-    MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
+    MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn merge_edge_create_data(
         &mut self,
-        old_edge_data_id: Option<Ulid>,
-        new_edge_data: EdgeProperties,
-    ) -> Ulid {
+        old_edge_data_id: Option<Id>,
+        new_edge_data: EdgeProps,
+    ) -> Id {
         if let Some(old_edge_data_id) = old_edge_data_id {
             match self.edge_props.entry(old_edge_data_id.clone()) {
                 std::collections::btree_map::Entry::Occupied(mut o) => {
@@ -28,13 +26,12 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
     }
 }
 
-impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Mergeable>
-    TripleStoreMerge<NodeProperties, EdgeProperties>
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
+    TripleStoreMerge<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn merge<E: std::fmt::Debug>(
         &mut self,
-        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+        other: impl TripleStore<Id, NodeProps, EdgeProps, Error = E>,
     ) -> Result<(), MergeError<Self::Error, E>> {
         let (other_nodes, other_edges) = other.into_iter_nodes(crate::EdgeOrder::SPO);
 
@@ -54,10 +51,10 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
         for r in other_edges {
             let (id, other_edge_props) = r.map_err(|e| MergeError::Right(e))?;
 
-            match self.spo_data.entry(id.encode_spo()) {
+            match self.spo_data.entry(Id::encode_spo_triple(&id)) {
                 std::collections::btree_map::Entry::Vacant(self_spo_data_v) => {
                     // We don't have this edge already.
-                    let other_edge_props_id = Ulid::new();
+                    let other_edge_props_id = self.id_generator.fresh();
 
                     self_spo_data_v.insert(other_edge_props_id);
                     self.edge_props
@@ -86,7 +83,7 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
         Ok(())
     }
 
-    fn merge_node(&mut self, node: Ulid, data: NodeProperties) -> Result<(), ()> {
+    fn merge_node(&mut self, node: Id, data: NodeProps) -> Result<(), ()> {
         match self.node_props.entry(node) {
             std::collections::btree_map::Entry::Occupied(mut o) => {
                 o.get_mut().merge(data);
@@ -98,8 +95,8 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
         Ok(())
     }
 
-    fn merge_edge(&mut self, triple: Triple, data: EdgeProperties) -> Result<(), ()> {
-        let old_edge_data_id = match self.spo_data.entry(Triple::encode_spo(&triple)) {
+    fn merge_edge(&mut self, triple: Triple<Id>, data: EdgeProps) -> Result<(), ()> {
+        let old_edge_data_id = match self.spo_data.entry(Id::encode_spo_triple(&triple)) {
             std::collections::btree_map::Entry::Vacant(_) => None,
             std::collections::btree_map::Entry::Occupied(o) => Some(o.get().clone()),
         };
@@ -114,20 +111,20 @@ impl<NodeProperties: PropertyType + Mergeable, EdgeProperties: PropertyType + Me
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::*;
+    use crate::{prelude::*, traits::IdGenerator};
 
     #[test]
     fn test_merge() {
-        crate::conformance::merge::test_merge(|| MemTripleStore::new());
+        crate::conformance::merge::test_merge(|| MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_merge_node() {
-        crate::conformance::merge::test_merge_node(|| MemTripleStore::new());
+        crate::conformance::merge::test_merge_node(|| MemTripleStore::new(UlidIdGenerator::new()));
     }
 
     #[test]
     fn test_merge_edge() {
-        crate::conformance::merge::test_merge_edge(|| MemTripleStore::new());
+        crate::conformance::merge::test_merge_edge(|| MemTripleStore::new(UlidIdGenerator::new()));
     }
 }

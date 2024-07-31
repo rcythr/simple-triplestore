@@ -1,31 +1,32 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::Transactional;
-use ulid::Ulid;
 
-use crate::{PropertyType, Triple, TripleStoreInsert};
+use crate::{traits::IdType, Property, Triple, TripleStoreInsert};
 
-use super::{Error, SledTripleStore};
+use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
-        NodeProperties: PropertyType + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Serialize + DeserializeOwned,
-    > TripleStoreInsert<NodeProperties, EdgeProperties>
-    for SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > TripleStoreInsert<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
 {
-    fn insert_node(&mut self, node: Ulid, props: NodeProperties) -> Result<(), Error> {
-        let key_bytes = &node.0.to_be_bytes();
-        let data_bytes = bincode::serialize(&props).map_err(|e| Error::SerializationError(e))?;
-        self.node_props
-            .insert(key_bytes, data_bytes)
-            .map_err(|e| Error::SledError(e))?;
+    fn insert_node(&mut self, node: Id, props: NodeProps) -> Result<(), SledTripleStoreError> {
+        let key_bytes = &node.to_be_bytes();
+        let data_bytes = bincode::serialize(&props)?;
+        self.node_props.insert(key_bytes, data_bytes)?;
         Ok(())
     }
 
-    fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Error> {
-        let prop_key = Ulid::new();
-        let prop_key_bytes = &prop_key.0.to_be_bytes();
+    fn insert_edge(
+        &mut self,
+        triple: Triple<Id>,
+        props: EdgeProps,
+    ) -> Result<(), SledTripleStoreError> {
+        let prop_key = self.id_generator.fresh();
+        let prop_key_bytes = prop_key.to_be_bytes();
 
-        let data_bytes = bincode::serialize(&props).map_err(|e| Error::SerializationError(e))?;
+        let data_bytes = bincode::serialize(&props)?;
 
         (
             &self.edge_props,
@@ -34,15 +35,26 @@ impl<
             &self.osp_data,
         )
             .transaction(move |(edge_props, spo_data, pos_data, osp_data)| {
-                edge_props.insert(prop_key_bytes.as_slice(), data_bytes.as_slice())?;
-                spo_data.insert(triple.encode_spo().as_slice(), prop_key_bytes.as_slice())?;
-                pos_data.insert(triple.encode_pos().as_slice(), prop_key_bytes.as_slice())?;
-                osp_data.insert(triple.encode_osp().as_slice(), prop_key_bytes.as_slice())?;
+                edge_props.insert(prop_key_bytes.as_ref(), data_bytes.as_slice())?;
+                spo_data.insert(
+                    Id::encode_spo_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                )?;
+                pos_data.insert(
+                    Id::encode_pos_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                )?;
+                osp_data.insert(
+                    Id::encode_osp_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                )?;
                 Ok(())
             })
             .map_err(|e| match e {
-                sled::transaction::TransactionError::Abort(e) => Error::SledError(e),
-                sled::transaction::TransactionError::Storage(e) => Error::SledError(e),
+                sled::transaction::TransactionError::Abort(e) => SledTripleStoreError::SledError(e),
+                sled::transaction::TransactionError::Storage(e) => {
+                    SledTripleStoreError::SledError(e)
+                }
             })?;
 
         Ok(())
@@ -56,14 +68,14 @@ mod test {
     #[test]
     fn test_insert_node() {
         let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
-        let sled_db = SledTripleStore::new(&db).expect("ok");
+        let sled_db = SledTripleStore::new(&db, UlidIdGenerator::new()).expect("ok");
         crate::conformance::insert::test_insert_node(sled_db);
     }
 
     #[test]
     fn test_insert_edge() {
         let (_tempdir, db) = crate::sled::create_test_db().expect("ok");
-        let sled_db = SledTripleStore::new(&db).expect("ok");
+        let sled_db = SledTripleStore::new(&db, UlidIdGenerator::new()).expect("ok");
         crate::conformance::insert::test_insert_edge(sled_db);
     }
 }

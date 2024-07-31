@@ -1,19 +1,17 @@
 use ulid::Ulid;
 
-mod decode;
-mod encode;
 mod key_bounds;
 
-use crate::PropertyType;
+use crate::{IdType, Property};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Triple {
-    pub sub: Ulid,
-    pub pred: Ulid,
-    pub obj: Ulid,
+pub struct Triple<Id: IdType> {
+    pub sub: Id,
+    pub pred: Id,
+    pub obj: Id,
 }
 
-impl PartialOrd for Triple {
+impl<Id: IdType> PartialOrd for Triple<Id> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match self.sub.partial_cmp(&other.sub) {
             None => None,
@@ -36,21 +34,21 @@ impl PartialOrd for Triple {
 
 // A triple along with the associated Node and Edge properties for .
 #[derive(Debug, Clone, PartialEq)]
-pub struct PropsTriple<NodeProperties: PropertyType, EdgeProperties: PropertyType> {
-    pub sub: (Ulid, NodeProperties),
-    pub pred: (Ulid, EdgeProperties),
-    pub obj: (Ulid, NodeProperties),
+pub struct PropsTriple<Id: IdType, NodeProps: Property, EdgeProps: Property> {
+    pub sub: (Id, NodeProps),
+    pub pred: (Id, EdgeProps),
+    pub obj: (Id, NodeProps),
 }
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    From<PropsTriple<NodeProperties, EdgeProperties>> for Triple
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+    From<PropsTriple<Id, NodeProps, EdgeProps>> for Triple<Id>
 {
     fn from(
         PropsTriple {
             sub: (sub, _),
             pred: (pred, _),
             obj: (obj, _),
-        }: PropsTriple<NodeProperties, EdgeProperties>,
+        }: PropsTriple<Id, NodeProps, EdgeProps>,
     ) -> Self {
         Self { sub, pred, obj }
     }

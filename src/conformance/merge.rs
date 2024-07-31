@@ -47,7 +47,8 @@ impl Default for Config {
 }
 
 fn build_graph<
-    T: TripleStore<TestMergeable, TestMergeable> + TripleStoreMerge<TestMergeable, TestMergeable>,
+    T: TripleStore<Ulid, TestMergeable, TestMergeable>
+        + TripleStoreMerge<Ulid, TestMergeable, TestMergeable>,
 >(
     mut db: T,
     config: Config,
@@ -93,8 +94,8 @@ fn build_graph<
 }
 
 pub(crate) fn test_merge<
-    T: TripleStore<TestMergeable, TestMergeable>
-        + TripleStoreMerge<TestMergeable, TestMergeable>
+    T: TripleStore<Ulid, TestMergeable, TestMergeable>
+        + TripleStoreMerge<Ulid, TestMergeable, TestMergeable>
         + std::fmt::Debug,
 >(
     mut make_db: impl FnMut() -> T,
@@ -179,8 +180,8 @@ pub(crate) fn test_merge<
 }
 
 pub(crate) fn test_merge_node<
-    T: TripleStore<TestMergeable, TestMergeable>
-        + TripleStoreMerge<TestMergeable, TestMergeable>
+    T: TripleStore<Ulid, TestMergeable, TestMergeable>
+        + TripleStoreMerge<Ulid, TestMergeable, TestMergeable>
         + std::fmt::Debug,
 >(
     mut make_db: impl FnMut() -> T,
@@ -237,8 +238,8 @@ pub(crate) fn test_merge_node<
 }
 
 pub(crate) fn test_merge_edge<
-    T: TripleStore<TestMergeable, TestMergeable>
-        + TripleStoreMerge<TestMergeable, TestMergeable>
+    T: TripleStore<Ulid, TestMergeable, TestMergeable>
+        + TripleStoreMerge<Ulid, TestMergeable, TestMergeable>
         + std::fmt::Debug,
 >(
     mut make_db: impl FnMut() -> T,

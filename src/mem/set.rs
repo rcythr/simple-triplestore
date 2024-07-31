@@ -1,19 +1,18 @@
 use std::collections::HashSet;
 
-use crate::{prelude::*, EdgeOrder, PropertyType, SetOpsError};
+use crate::{prelude::*, traits::IdType, EdgeOrder, Property};
 
-impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
-    TripleStoreSetOps<NodeProperties, EdgeProperties>
-    for MemTripleStore<NodeProperties, EdgeProperties>
+impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+    TripleStoreSetOps<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
-    type SetOpsResult = MemTripleStore<NodeProperties, EdgeProperties>;
+    type SetOpsResult = MemTripleStore<Id, NodeProps, EdgeProps>;
     type SetOpsResultError = ();
 
     fn union<E: std::fmt::Debug>(
         self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+        other: impl TripleStoreIntoIter<Id, NodeProps, EdgeProps, Error = E>,
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
-        let mut result = MemTripleStore::new();
+        let mut result = MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
 
         let (self_node_iter, self_edge_iter) = self.into_iter_nodes(EdgeOrder::SPO);
         for r in self_node_iter {
@@ -48,9 +47,10 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
 
     fn intersection<E: std::fmt::Debug>(
         self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+        other: impl TripleStoreIntoIter<Id, NodeProps, EdgeProps, Error = E>,
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
-        let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
+        let mut result: MemTripleStore<Id, NodeProps, EdgeProps> =
+            MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
 
         let (self_nodes, self_edges) = self.into_iter_nodes(EdgeOrder::SPO);
         let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
@@ -108,9 +108,10 @@ impl<NodeProperties: PropertyType, EdgeProperties: PropertyType>
 
     fn difference<E: std::fmt::Debug>(
         self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
+        other: impl TripleStoreIntoIter<Id, NodeProps, EdgeProps, Error = E>,
     ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>> {
-        let mut result: MemTripleStore<NodeProperties, EdgeProperties> = MemTripleStore::new();
+        let mut result: MemTripleStore<Id, NodeProps, EdgeProps> =
+            MemTripleStore::new_from_boxed_id_generator(self.id_generator.clone());
 
         let (self_nodes, self_edges) = self.into_iter_nodes(EdgeOrder::SPO);
         let mut self_nodes = self_nodes.map(|r| r.map_err(|e| SetOpsError::Left(e)));
@@ -194,16 +195,25 @@ mod test {
 
     #[test]
     fn test_union() {
-        crate::conformance::set::test_union(MemTripleStore::new(), MemTripleStore::new());
+        crate::conformance::set::test_union(
+            MemTripleStore::new(UlidIdGenerator::new()),
+            MemTripleStore::new(UlidIdGenerator::new()),
+        );
     }
 
     #[test]
     fn test_intersection() {
-        crate::conformance::set::test_intersection(MemTripleStore::new(), MemTripleStore::new());
+        crate::conformance::set::test_intersection(
+            MemTripleStore::new(UlidIdGenerator::new()),
+            MemTripleStore::new(UlidIdGenerator::new()),
+        );
     }
 
     #[test]
     fn test_difference() {
-        crate::conformance::set::test_difference(MemTripleStore::new(), MemTripleStore::new());
+        crate::conformance::set::test_difference(
+            MemTripleStore::new(UlidIdGenerator::new()),
+            MemTripleStore::new(UlidIdGenerator::new()),
+        );
     }
 }

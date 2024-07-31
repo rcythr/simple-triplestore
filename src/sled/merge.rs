@@ -1,29 +1,25 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{prelude::*, PropertyType};
+use crate::{prelude::*, traits::IdType, Property};
 
 impl<
-        NodeProperties: PropertyType + Mergeable + Serialize + DeserializeOwned,
-        EdgeProperties: PropertyType + Mergeable + Serialize + DeserializeOwned,
-    > TripleStoreMerge<NodeProperties, EdgeProperties>
-    for SledTripleStore<NodeProperties, EdgeProperties>
+        Id: IdType,
+        NodeProps: Property + Mergeable + Serialize + DeserializeOwned,
+        EdgeProps: Property + Mergeable + Serialize + DeserializeOwned,
+    > TripleStoreMerge<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
 {
     fn merge<E: std::fmt::Debug>(
         &mut self,
-        _other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
+        _other: impl TripleStore<Id, NodeProps, EdgeProps, Error = E>,
     ) -> Result<(), MergeError<Self::Error, E>> {
         todo!()
     }
 
-    fn merge_node(&mut self, _node: ulid::Ulid, _data: NodeProperties) -> Result<(), Self::Error> {
+    fn merge_node(&mut self, _node: Id, _data: NodeProps) -> Result<(), Self::Error> {
         todo!()
     }
 
-    fn merge_edge(
-        &mut self,
-        _triple: crate::Triple,
-        _data: EdgeProperties,
-    ) -> Result<(), Self::Error> {
+    fn merge_edge(&mut self, _triple: Triple<Id>, _data: EdgeProps) -> Result<(), Self::Error> {
         todo!()
     }
 }

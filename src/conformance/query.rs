@@ -62,7 +62,7 @@ impl Default for Config {
     }
 }
 
-fn build_graph<T: TripleStore<String, String>>(mut db: T, config: Config) -> T {
+fn build_graph<T: TripleStore<Ulid, String, String>>(mut db: T, config: Config) -> T {
     for (node, props) in [
         (config.node_0, config.node_props_0),
         (config.node_1, config.node_props_1),
@@ -121,7 +121,7 @@ fn build_graph<T: TripleStore<String, String>>(mut db: T, config: Config) -> T {
     db
 }
 
-pub(crate) fn test_query_node_props<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_node_props<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -150,7 +150,7 @@ pub(crate) fn test_query_node_props<T: TripleStore<String, String>>(db: T) {
     );
 }
 
-pub(crate) fn test_query_edge_props<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_edge_props<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -193,7 +193,7 @@ pub(crate) fn test_query_edge_props<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_s<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_s<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -231,7 +231,7 @@ pub(crate) fn test_query_s<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_sp<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_sp<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -259,7 +259,7 @@ pub(crate) fn test_query_sp<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_p<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_p<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -295,7 +295,7 @@ pub(crate) fn test_query_p<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_po<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_po<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -323,7 +323,7 @@ pub(crate) fn test_query_po<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_o<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_o<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());
@@ -359,7 +359,7 @@ pub(crate) fn test_query_o<T: TripleStore<String, String>>(db: T) {
     assert_eq!(query.iter_vertices().collect::<Vec<_>>().len(), 0);
 }
 
-pub(crate) fn test_query_os<T: TripleStore<String, String>>(db: T) {
+pub(crate) fn test_query_os<T: TripleStore<Ulid, String, String>>(db: T) {
     let config = Config::default();
 
     let graph = build_graph(db, config.clone());

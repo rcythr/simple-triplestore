@@ -10,13 +10,13 @@ struct Config {
     r1: (Ulid, String),
     r2: (Ulid, String),
 
-    e_l1_l2: (Triple, String),
-    e_m1_m2: (Triple, String),
-    e_r1_r2: (Triple, String),
-    e_r2_m2: (Triple, String),
-    e_m2_l2: (Triple, String),
-    e_l1_m1: (Triple, String),
-    e_m1_r1: (Triple, String),
+    e_l1_l2: (Triple<Ulid>, String),
+    e_m1_m2: (Triple<Ulid>, String),
+    e_r1_r2: (Triple<Ulid>, String),
+    e_r2_m2: (Triple<Ulid>, String),
+    e_m2_l2: (Triple<Ulid>, String),
+    e_l1_m1: (Triple<Ulid>, String),
+    e_m1_r1: (Triple<Ulid>, String),
 }
 
 impl Default for Config {
@@ -103,7 +103,7 @@ impl Default for Config {
     }
 }
 
-fn setup_left<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
+fn setup_left<T: TripleStore<Ulid, String, String>>(config: &Config, left: &mut T) {
     for (node, props) in [
         config.l1.clone(),
         config.l2.clone(),
@@ -123,7 +123,7 @@ fn setup_left<T: TripleStore<String, String>>(config: &Config, left: &mut T) {
     }
 }
 
-fn setup_right<T: TripleStore<String, String>>(config: &Config, right: &mut T) {
+fn setup_right<T: TripleStore<Ulid, String, String>>(config: &Config, right: &mut T) {
     for (node, props) in [
         config.r1.clone(),
         config.r2.clone(),
@@ -143,7 +143,9 @@ fn setup_right<T: TripleStore<String, String>>(config: &Config, right: &mut T) {
     }
 }
 
-pub(crate) fn test_union<T: TripleStore<String, String> + TripleStoreSetOps<String, String>>(
+pub(crate) fn test_union<
+    T: TripleStore<Ulid, String, String> + TripleStoreSetOps<Ulid, String, String>,
+>(
     mut left: T,
     mut right: T,
 ) {
@@ -177,7 +179,7 @@ pub(crate) fn test_union<T: TripleStore<String, String> + TripleStoreSetOps<Stri
 }
 
 pub(crate) fn test_intersection<
-    T: TripleStore<String, String> + TripleStoreSetOps<String, String>,
+    T: TripleStore<Ulid, String, String> + TripleStoreSetOps<Ulid, String, String>,
 >(
     mut left: T,
     mut right: T,
@@ -203,7 +205,7 @@ pub(crate) fn test_intersection<
 }
 
 pub(crate) fn test_difference<
-    T: TripleStore<String, String> + TripleStoreSetOps<String, String>,
+    T: TripleStore<Ulid, String, String> + TripleStoreSetOps<Ulid, String, String>,
 >(
     mut left: T,
     mut right: T,

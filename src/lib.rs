@@ -42,29 +42,34 @@
 //!   * [Sled][SledTripleStore]
 //!
 
-use std::borrow::Borrow;
+pub mod prelude;
+
+use std::collections::HashSet;
 
 use itertools::Itertools;
-use ulid::Ulid;
 
-mod mem;
+mod id;
 mod mergeable;
-pub mod prelude;
-mod query_impl;
+
 mod triple;
+pub use crate::triple::{PropsTriple, Triple};
+
+mod traits;
+use traits::{
+    IdType, Mergeable, TripleStoreExtend, TripleStoreInsert, TripleStoreIntoIter, TripleStoreIter,
+    TripleStoreQuery, TripleStoreRemove,
+};
 
 #[cfg(test)]
 mod conformance;
 
+mod mem;
+pub use crate::mem::MemTripleStore;
+
 #[cfg(feature = "sled")]
 pub mod sled;
-
-pub use crate::mem::MemTripleStore;
-pub use crate::mergeable::Mergeable;
-pub use crate::query_impl::Query;
 #[cfg(feature = "sled")]
 pub use crate::sled::SledTripleStore;
-pub use crate::triple::{PropsTriple, Triple};
 
 /// A trait representing a graph constructed of vertices and edges, collectively referred to as nodes.
 ///
@@ -85,17 +90,17 @@ pub use crate::triple::{PropsTriple, Triple};
 /// # Example
 ///
 /// See [MemTripleStore] or [SledTripleStore] for usage.
-pub trait TripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreInsert<NodeProperties, EdgeProperties>
-    + TripleStoreRemove<NodeProperties, EdgeProperties>
-    + TripleStoreIter<NodeProperties, EdgeProperties>
-    + TripleStoreIntoIter<NodeProperties, EdgeProperties>
-    + TripleStoreQuery<NodeProperties, EdgeProperties>
-    + TripleStoreExtend<NodeProperties, EdgeProperties>
+pub trait TripleStore<Id: IdType, NodeProps: Property, EdgeProps: Property>:
+    TripleStoreInsert<Id, NodeProps, EdgeProps>
+    + TripleStoreRemove<Id, NodeProps, EdgeProps>
+    + TripleStoreIter<Id, NodeProps, EdgeProps>
+    + TripleStoreIntoIter<Id, NodeProps, EdgeProps>
+    + TripleStoreQuery<Id, NodeProps, EdgeProps>
+    + TripleStoreExtend<Id, NodeProps, EdgeProps>
 {
     fn try_eq<OError: std::fmt::Debug>(
         &self,
-        other: &impl TripleStore<NodeProperties, EdgeProperties, Error = OError>,
+        other: &impl TripleStore<Id, NodeProps, EdgeProps, Error = OError>,
     ) -> Result<bool, crate::TryEqError<Self::Error, OError>> {
         let (self_nodes, self_edges) = self.iter_nodes(EdgeOrder::SPO);
         let self_nodes = self_nodes.map(|r| r.map_err(|e| TryEqError::Left(e)));
@@ -139,48 +144,16 @@ pub trait TripleStore<NodeProperties: PropertyType, EdgeProperties: PropertyType
     }
 }
 
-#[derive(Debug)]
-pub enum TryEqError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
-    Left(LeftError),
-    Right(RightError),
-}
-
 // Marker trait for all types which are supported as TripleStore properties.
-pub trait PropertyType: Clone + std::fmt::Debug + PartialEq {}
-impl<T: Clone + std::fmt::Debug + PartialEq> PropertyType for T {}
+pub trait Property: Clone + std::fmt::Debug + PartialEq {}
+impl<T: Clone + std::fmt::Debug + PartialEq> Property for T {}
 
 /// A trait that encapsulates the error type used by other traits in the library.
 pub trait TripleStoreError {
     type Error: std::fmt::Debug;
 }
 
-/// A trait for insertion operations in [TripleStore]s.
-///
-/// Allows insertion of vertices (nodes) and edges, both singularly and in batches.
-pub trait TripleStoreInsert<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    /// Insert a node with `id` and `props`.
-    fn insert_node(&mut self, id: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
-
-    /// Insert an edge with `triple` and `props`.
-    ///
-    /// <div class="warning">Nodes need not be inserted before edges; however, Orphaned edges (edges referring to missing nodes) are ignored
-    /// by iteration functions and higher-order operations.</div>
-    fn insert_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
-}
-
-/// Removal operations for TripleStores.
-pub trait TripleStoreRemove<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    /// Remove the node with `id`.
-    fn remove_node(&mut self, id: impl Borrow<Ulid>) -> Result<(), Self::Error>;
-
-    /// Remove the node with `triple`.
-    fn remove_edge(&mut self, triple: Triple) -> Result<(), Self::Error>;
-}
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EdgeOrder {
     SPO,
     POS,
@@ -193,188 +166,253 @@ impl Default for EdgeOrder {
     }
 }
 
-// Iteration functions which do not consume the TripleStore.
-pub trait TripleStoreIter<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    // Return the identifiers for all verticies. The result is lifted out of the iterator for easy usage by the caller.
-    fn vertices(&self) -> Result<impl Iterator<Item = Ulid>, Self::Error>;
-
-    // Return two iterators: one for vertices, and one for edges.
-    fn iter_nodes(
-        &self,
-        order: EdgeOrder,
-    ) -> (
-        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
-        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
-    );
-
-    /// Iterate over vertices in the triplestore.
-    fn iter_vertices<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>> + 'a;
-
-    /// Iterate over the edges in the triplestore, fetching node properties for each subject and object.
-    fn iter_edges_with_props<'a>(
-        &'a self,
-        order: EdgeOrder,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>> + 'a;
-
-    /// Iterate over the edges in the triplestore
-    fn iter_edges<'a>(
-        &'a self,
-        order: EdgeOrder,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>> + 'a;
-}
-
-pub trait TripleStoreIntoIter<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    // Return two iterators: one for vertices, and one for edges.
-    fn into_iter_nodes(
-        self,
-        order: EdgeOrder,
-    ) -> (
-        impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>,
-        impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>,
-    );
-
-    /// Iterate over vertices in the triplestore.
-    fn into_iter_vertices(
-        self,
-    ) -> impl Iterator<Item = Result<(Ulid, NodeProperties), Self::Error>>;
-
-    /// Iterate over the edges in the triplestore, fetching node properties for each subject and object.
-    fn into_iter_edges_with_props(
-        self,
-        order: EdgeOrder,
-    ) -> impl Iterator<Item = Result<PropsTriple<NodeProperties, EdgeProperties>, Self::Error>>;
-
-    /// Iterate over the edges in the triplestore
-    fn into_iter_edges(
-        self,
-        order: EdgeOrder,
-    ) -> impl Iterator<Item = Result<(Triple, EdgeProperties), Self::Error>>;
-}
-
 #[derive(Debug)]
-pub enum QueryError<SourceError: std::fmt::Debug, ResultError: std::fmt::Debug> {
-    Left(SourceError),
-    Right(ResultError),
-}
-
-/// A trait for querying operations in a [TripleStore].
-///
-/// Supports arbitrary source, predicate, and object queries, as well as lookups for properties of nodes and edges.
-pub trait TripleStoreQuery<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    /// The result type of a query.
-    type QueryResult: TripleStore<NodeProperties, EdgeProperties>;
-    type QueryResultError: std::fmt::Debug;
-
-    /// Execute a query and return the result.
-    fn run(
-        &self,
-        query: Query,
-    ) -> Result<Self::QueryResult, QueryError<Self::Error, Self::QueryResultError>>;
-}
-
-#[derive(Debug)]
-pub enum SetOpsError<
-    LeftError: std::fmt::Debug,
-    RightError: std::fmt::Debug,
-    ResultError: std::fmt::Debug,
-> {
+pub enum TryEqError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
     Left(LeftError),
     Right(RightError),
-    Result(ResultError),
 }
 
-/// A trait for basic set operations in a memory-based [TripleStore].
+/// Represents a query which can be executed on a [TripleStore][crate::TripleStore].
 ///
-/// Provides functionality for union, intersection, and difference operations on sets of triples.
-pub trait TripleStoreSetOps<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    /// The result type for set operations.
-    type SetOpsResult: TripleStore<NodeProperties, EdgeProperties>;
-    type SetOpsResultError: std::fmt::Debug;
+/// These are most easily created using teh [query][crate::query] macro.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Query<Id: IdType> {
+    /// Fetch the NodeProps for the given set of ids.
+    NodeProps(HashSet<Id>),
 
-    /// Set union of properties and triples with another [TripleStore].
-    fn union<E: std::fmt::Debug>(
-        self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
-    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
+    /// Fetch the edges for the given set of triples.
+    SPO(HashSet<(Id, Id, Id)>),
 
-    /// Set intersection of properties and triples with another [TripleStore].
-    fn intersection<E: std::fmt::Debug>(
-        self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
-    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
+    /// Fetch all edges which point to one of the given set of ids.
+    O(HashSet<Id>),
 
-    /// Set difference of properties triples with another [TripleStore].
-    fn difference<E: std::fmt::Debug>(
-        self,
-        other: impl TripleStoreIntoIter<NodeProperties, EdgeProperties, Error = E>,
-    ) -> Result<Self::SetOpsResult, SetOpsError<Self::Error, E, Self::SetOpsResultError>>;
+    /// Fetch all edges which start at one of the given set of ids.
+    S(HashSet<Id>),
+
+    /// Fetch all edges which have one of the given set of edge ids.
+    P(HashSet<Id>),
+
+    /// Fetch all edges which have one of the given tuples as predicate and object.
+    PO(HashSet<(Id, Id)>),
+
+    /// Fetch all edges which have one of the given tuples as subject and object.
+    SO(HashSet<(Id, Id)>),
+
+    /// Fetch all edges which have one of the given tuples as subject and predicate.
+    SP(HashSet<(Id, Id)>),
 }
 
-/// Wrapper for errors resulting from [TripleStoreExtend::extend()]
-#[derive(Debug)]
-pub enum ExtendError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
-    /// Error from the [TripleStore] being extended.
-    Left(LeftError),
-
-    /// Error from the [TripleStore] being consumed.
-    Right(RightError),
-}
-
-/// A trait for extending a [TripleStore] with elements from another [TripleStore].
+/// Syntactic sugar macro for constructing [Query] objects which can be used in [crate::TripleStoreQuery::run()].
 ///
-/// Inserts all nodes and edges from `other` into this [TripleStore], replacing existing property data if present.
-pub trait TripleStoreExtend<NodeProperties: PropertyType, EdgeProperties: PropertyType>:
-    TripleStoreError
-{
-    /// Extend this [TripleStore] with nodes and edges from `other`.
-    ///
-    /// Property data for existing nodes will be replaced with data from `other`.
-    fn extend<E: std::fmt::Debug>(
-        &mut self,
-        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
-    ) -> Result<(), ExtendError<Self::Error, E>>;
-}
-
-/// Wrapper for errors resulting from [TripleStoreMerge::merge()]
-#[derive(Debug)]
-pub enum MergeError<LeftError: std::fmt::Debug, RightError: std::fmt::Debug> {
-    /// Error from the [TripleStore] being merged _into_.
-    Left(LeftError),
-
-    /// Error from the [TripleStore] being merged _from_.
-    Right(RightError),
-}
-
-/// A trait for supporting merging in [TripleStore]s.
+/// # Examples
 ///
-/// If `NodeProperties` and `EdgeProperties` support the [Mergeable] trait, this trait provides functionality to
-/// merge elements from another [TripleStore], merging properties rather than replacing them.
-pub trait TripleStoreMerge<
-    NodeProperties: PropertyType + Mergeable,
-    EdgeProperties: PropertyType + Mergeable,
->: TripleStoreError
-{
-    /// Merge all elements from `other` into this [TripleStore].
-    ///
-    /// Duplicate elements will be merged using the `Mergeable` trait's merge operation.
-    fn merge<E: std::fmt::Debug>(
-        &mut self,
-        other: impl TripleStore<NodeProperties, EdgeProperties, Error = E>,
-    ) -> Result<(), MergeError<Self::Error, E>>;
+/// The following is used throught all of the examples below:
+/// ```
+/// use ulid::Ulid;
+/// use simple_triplestore::prelude::*;
+/// let a = Ulid(1);
+/// let b = Ulid(2);
+/// let c = Ulid(3);
+/// let d = Ulid(4);
+/// let e = Ulid(5);
+/// let f = Ulid(6);
+/// ```
+///
+/// ### Node Properties
+/// To fetch node properties for a collection of vertices:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// assert_eq!(
+///     query! { node props for [a, b]},
+///     Query::NodeProps([a, b].into_iter().collect())
+/// );
+/// ```
+///
+/// ### S
+/// To find all edges for a list of subjects:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// assert_eq!(
+///     query! { [a, b] -?-> ? },
+///     Query::S([a, b].into_iter().collect())
+/// );
+/// ```
+///
+/// ### P
+/// To find all edges for a list of predicates:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let b = Ulid(2);
+/// # let c = Ulid(3);
+/// assert_eq!(
+///     query! { ? -[b, c]-> ? },
+///     Query::P([b, c].into_iter().collect())
+/// );
+/// ```
+///
+/// ### PO
+/// To find all edges for all combinations of predicates and objects:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// # let c = Ulid(3);
+/// # let d = Ulid(4);
+/// assert_eq!(
+///     query! { ? -[a,b]-> [c, d] },
+///     Query::PO([(a, c), (a, d), (b, c), (b, d)].into_iter().collect())
+/// );
+/// ```
+/// ### SO
+/// To find all edges for all combinations of subjects and objects:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// # let c = Ulid(3);
+/// # let d = Ulid(4);
+/// assert_eq!(
+///     query! { [a, b] -?-> [c, d] },
+///     Query::SO([(a, c), (a, d), (b, c), (b, d)].into_iter().collect())
+/// );
+/// ```
+///
+/// ### O
+/// To find all edges for a list of objects:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// assert_eq!(
+///     query! { ? -?-> [a, b] },
+///     Query::O([a, b].into_iter().collect())
+/// );
+/// ```
+///
+/// ### SP
+/// To find all edges for all combinations of subjects and predicates:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// # let c = Ulid(3);
+/// # let d = Ulid(4);
+/// assert_eq!(
+///     query! { [a, b] -[c, d]-> ? },
+///     Query::SP([(a, c), (a, d), (b, c), (b, d)].into_iter().collect())
+/// );
+/// ```
+///
+/// ### SPO
+/// To find all edges for all combinations of subjects, predicates, and objects:
+///
+/// ```
+/// # use ulid::Ulid;
+/// # use simple_triplestore::prelude::*;
+/// # let a = Ulid(1);
+/// # let b = Ulid(2);
+/// # let c = Ulid(3);
+/// # let d = Ulid(4);
+/// # let e = Ulid(5);
+/// # let f = Ulid(6);
+/// assert_eq!(
+///     query! { [a, b] -[c, d]-> [e, f] },
+///     Query::SPO(
+///         [
+///             (a, c, e),
+///             (a, c, f),
+///             (a, d, e),
+///             (a, d, f),
+///             (b, c, e),
+///             (b, c, f),
+///             (b, d, e),
+///             (b, d, f)
+///         ]
+///         .into_iter()
+///         .collect()
+///     )
+/// );
+/// ```
+#[macro_export]
+macro_rules! query {
+    // Match specific source, edge, and destination
+    (node props for $nodes:tt) => {{
+        $crate::Query::NodeProps($nodes.into_iter().collect())
+    }};
 
-    /// Merge a single node with `id` and `props`.
-    fn merge_node(&mut self, node: Ulid, props: NodeProperties) -> Result<(), Self::Error>;
+    ($subs:tt -?-> ?) => {{
+        $crate::Query::S($subs.into_iter().collect())
+    }};
 
-    //// Merge a collection of edges with `(id, props)`.
-    fn merge_edge(&mut self, triple: Triple, props: EdgeProperties) -> Result<(), Self::Error>;
+    (? -$preds:tt-> ?) => {{
+        $crate::Query::P($preds.into_iter().collect())
+    }};
+
+    ($subs:tt -$preds:tt-> ?) => {{
+        use std::collections::HashSet;
+        let mut items = HashSet::new();
+        for sub in $subs {
+            for pred in $preds {
+                items.insert((sub, pred));
+            }
+        }
+        $crate::Query::SP(items)
+    }};
+
+    (? -?-> $objs:tt) => {{
+        $crate::Query::O($objs.into_iter().collect())
+    }};
+
+    ($subs:tt -?-> $objs:tt) => {{
+        use std::collections::HashSet;
+        let mut items = HashSet::new();
+        for sub in $subs {
+            for obj in $objs {
+                items.insert((sub, obj));
+            }
+        }
+        $crate::Query::SO(items)
+    }};
+
+    (? -$preds:tt-> $objs:tt) => {{
+        use std::collections::HashSet;
+        let mut items = HashSet::new();
+        for sub in $preds {
+            for obj in $objs {
+                items.insert((sub, obj));
+            }
+        }
+        $crate::Query::PO(items)
+    }};
+
+    ($subs:tt -$preds:tt-> $objs:tt) => {{
+        use std::collections::HashSet;
+        let mut items = HashSet::new();
+        for sub in $subs {
+            for pred in $preds {
+                for obj in $objs {
+                    items.insert((sub, pred, obj));
+                }
+            }
+        }
+        $crate::Query::SPO(items)
+    }};
 }
