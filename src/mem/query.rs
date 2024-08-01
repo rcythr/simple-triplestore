@@ -1,24 +1,23 @@
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     Query, QueryError, Triple,
 };
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreQuery<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     type QueryResult = MemTripleStore<Id, NodeProps, EdgeProps>;
-    type QueryResultError = ();
 
     fn run(
         &self,
         query: Query<Id>,
     ) -> Result<
         MemTripleStore<Id, NodeProps, EdgeProps>,
-        QueryError<Self::Error, Self::QueryResultError>,
-    > {
+        QueryError<Self::Error, <<Self as TripleStoreQuery<Id, NodeProps, EdgeProps>>::QueryResult as TripleStoreError>::Error>
+    >{
         Ok(match query {
             Query::NodeProps(nodes) => {
                 let mut result =

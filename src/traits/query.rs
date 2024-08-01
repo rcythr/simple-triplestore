@@ -18,11 +18,10 @@ pub trait TripleStoreQuery<Id: IdType, NodeProps: Property, EdgeProps: Property>
 {
     /// The result type of a query.
     type QueryResult: TripleStore<Id, NodeProps, EdgeProps>;
-    type QueryResultError: std::fmt::Debug;
 
     /// Execute a query and return the result.
     fn run(
         &self,
         query: Query<Id>,
-    ) -> Result<Self::QueryResult, QueryError<Self::Error, Self::QueryResultError>>;
+    ) -> Result<Self::QueryResult, QueryError<Self::Error, <<Self as TripleStoreQuery<Id, NodeProps, EdgeProps>>::QueryResult as TripleStoreError>::Error>>;
 }

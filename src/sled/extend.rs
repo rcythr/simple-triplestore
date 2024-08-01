@@ -4,14 +4,14 @@ use ulid::Ulid;
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     ExtendError,
 };
 
 use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreExtend<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>

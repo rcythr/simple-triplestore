@@ -3,9 +3,12 @@ use std::sync::{
     Arc,
 };
 
-use crate::{traits::IdGenerator, traits::IdType, Triple};
+use crate::{
+    traits::{ConcreteIdType, IdGenerator},
+    Triple,
+};
 
-impl IdType for u64 {
+impl ConcreteIdType for u64 {
     type ByteArrayType = [u8; 8];
     type TripleByteArrayType = [u8; 24];
 

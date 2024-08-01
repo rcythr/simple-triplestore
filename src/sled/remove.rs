@@ -5,12 +5,12 @@ use sled::Batch;
 use sled::Transactional;
 
 use crate::Triple;
-use crate::{prelude::*, sled::SledTripleStoreError, traits::IdType, traits::Property};
+use crate::{prelude::*, sled::SledTripleStoreError, traits::ConcreteIdType, traits::Property};
 
 use super::SledTripleStore;
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreRemove<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>

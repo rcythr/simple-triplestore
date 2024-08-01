@@ -1,8 +1,8 @@
-use crate::{prelude::*, traits::IdType, traits::Property, Triple};
+use crate::{prelude::*, traits::ConcreteIdType, traits::Property, Triple};
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     MemTripleStore<Id, NodeProps, EdgeProps>
 {
     pub(super) fn insert_edge_data_internal(&mut self, triple: &Triple<Id>, new_edge_data_id: &Id) {
@@ -33,7 +33,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreInsert<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn insert_node(&mut self, node: Id, data: NodeProps) -> Result<(), Self::Error> {

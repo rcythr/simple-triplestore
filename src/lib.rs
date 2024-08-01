@@ -24,26 +24,26 @@
 
 use std::collections::HashSet;
 
+#[cfg(test)]
+mod conformance;
 pub mod id;
 pub mod mem;
 pub mod prelude;
+#[cfg(feature = "rdf")]
+pub mod rdf;
 #[cfg(feature = "sled")]
 pub mod sled;
-
-#[cfg(test)]
-mod conformance;
 pub mod traits;
 pub mod triple;
 
+#[cfg(feature = "sled")]
+pub use crate::sled::{SledTripleStore, SledTripleStoreError};
 pub use crate::{
     id::ulid::UlidIdGenerator,
     mem::MemTripleStore,
     traits::{ExtendError, IdGenerator, MergeError, Mergeable, QueryError, SetOpsError},
     triple::{PropsTriple, Triple},
 };
-
-#[cfg(feature = "sled")]
-pub use crate::sled::{SledTripleStore, SledTripleStoreError};
 
 /// The order for edges which should be returned.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,7 +94,65 @@ pub enum Query<Id: traits::IdType> {
     SP(HashSet<(Id, Id)>),
 }
 
-impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<Id> {
+impl<Id: traits::IdType> Query<Id> {
+    pub fn map<O: traits::IdType>(self, f: impl Fn(Id) -> O) -> Query<O> {
+        match self {
+            Query::NodeProps(props) => Query::NodeProps(props.into_iter().map(f).collect()),
+            Query::SPO(triples) => Query::SPO(
+                triples
+                    .into_iter()
+                    .map(|(sub, pred, obj)| (f(sub), f(pred), f(obj)))
+                    .collect(),
+            ),
+            Query::O(set) => Query::O(set.into_iter().map(f).collect()),
+            Query::S(set) => Query::S(set.into_iter().map(f).collect()),
+            Query::P(set) => Query::P(set.into_iter().map(f).collect()),
+            Query::PO(set) => Query::PO(set.into_iter().map(|(a, b)| (f(a), f(b))).collect()),
+            Query::SO(set) => Query::SO(set.into_iter().map(|(a, b)| (f(a), f(b))).collect()),
+            Query::SP(set) => Query::SP(set.into_iter().map(|(a, b)| (f(a), f(b))).collect()),
+        }
+    }
+
+    pub fn try_map<E, O: traits::IdType>(
+        self,
+        mut f: impl FnMut(Id) -> Result<O, E>,
+    ) -> Result<Query<O>, E> {
+        Ok(match self {
+            Query::NodeProps(props) => Query::NodeProps(
+                props
+                    .into_iter()
+                    .map(f)
+                    .collect::<Result<HashSet<_>, _>>()?,
+            ),
+            Query::SPO(triples) => Query::SPO(
+                triples
+                    .into_iter()
+                    .map(|(sub, pred, obj)| Ok((f(sub)?, f(pred)?, f(obj)?)))
+                    .collect::<Result<_, _>>()?,
+            ),
+            Query::O(set) => Query::O(set.into_iter().map(f).collect::<Result<_, _>>()?),
+            Query::S(set) => Query::S(set.into_iter().map(f).collect::<Result<_, _>>()?),
+            Query::P(set) => Query::P(set.into_iter().map(f).collect::<Result<_, _>>()?),
+            Query::PO(set) => Query::PO(
+                set.into_iter()
+                    .map(|(a, b)| Ok((f(a)?, f(b)?)))
+                    .collect::<Result<_, _>>()?,
+            ),
+            Query::SO(set) => Query::SO(
+                set.into_iter()
+                    .map(|(a, b)| Ok((f(a)?, f(b)?)))
+                    .collect::<Result<_, _>>()?,
+            ),
+            Query::SP(set) => Query::SP(
+                set.into_iter()
+                    .map(|(a, b)| Ok((f(a)?, f(b)?)))
+                    .collect::<Result<_, _>>()?,
+            ),
+        })
+    }
+}
+
+impl<Id: traits::ConcreteIdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<Id> {
     fn from(value: I) -> Self {
         Query::SPO(value.into_iter().map(|t| (t.sub, t.pred, t.obj)).collect())
     }

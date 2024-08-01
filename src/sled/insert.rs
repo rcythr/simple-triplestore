@@ -3,14 +3,14 @@ use sled::Transactional;
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     Triple,
 };
 
 use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreInsert<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>

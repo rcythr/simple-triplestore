@@ -24,7 +24,8 @@ rand = "0.8.5"
 
 [features]
 sled = ["dep:sled", "dep:serde", "ulid/serde", "dep:bincode"]
-default = ["sled"]
+rdf = []
+default = ["sled", "rdf"]
 
 [[bench]]
 name = "benchmark"

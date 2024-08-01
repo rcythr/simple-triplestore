@@ -2,13 +2,13 @@ use std::collections::HashSet;
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     EdgeOrder, SetOpsError,
 };
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreSetOps<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     type SetOpsResult = MemTripleStore<Id, NodeProps, EdgeProps>;

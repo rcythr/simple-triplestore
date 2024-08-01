@@ -2,25 +2,24 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     MemTripleStore, Query, QueryError, Triple,
 };
 
 use super::SledTripleStore;
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreQuery<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
 {
     type QueryResult = MemTripleStore<Id, NodeProps, EdgeProps>;
-    type QueryResultError = ();
 
     fn run(
         &self,
         query: Query<Id>,
-    ) -> Result<Self::QueryResult, QueryError<Self::Error, Self::QueryResultError>> {
+    ) -> Result<Self::QueryResult, QueryError<Self::Error, <<Self as TripleStoreQuery<Id, NodeProps, EdgeProps>>::QueryResult as TripleStoreError>::Error>>{
         Ok(match query {
             Query::NodeProps(nodes) => {
                 let mut result =

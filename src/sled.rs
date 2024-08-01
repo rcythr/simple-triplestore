@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     IdGenerator,
 };
 use serde::{de::DeserializeOwned, Serialize};
@@ -135,7 +135,7 @@ impl From<bincode::Error> for SledTripleStoreError {
 /// # Ok::<(), QueryError<simple_triplestore::sled::SledTripleStoreError, ()>>(())
 /// ```
 pub struct SledTripleStore<
-    Id: IdType,
+    Id: ConcreteIdType,
     NodeProps: Property + Serialize + DeserializeOwned,
     EdgeProps: Serialize + DeserializeOwned,
 > {
@@ -149,7 +149,7 @@ pub struct SledTripleStore<
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > SledTripleStore<Id, NodeProps, EdgeProps>
@@ -179,7 +179,7 @@ impl<
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreError for SledTripleStore<Id, NodeProps, EdgeProps>
@@ -188,7 +188,7 @@ impl<
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStore<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
@@ -196,7 +196,7 @@ impl<
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > std::fmt::Debug for SledTripleStore<Id, NodeProps, EdgeProps>
@@ -334,3 +334,147 @@ pub(crate) fn create_test_db() -> Result<(tempdir::TempDir, sled::Db), sled::Err
     let db = sled::open(temp_dir.path())?;
     Ok((temp_dir, db))
 }
+
+#[cfg(feature = "rdf")]
+mod rdf {
+    use serde::{de::DeserializeOwned, Serialize};
+    use sled::transaction::{ConflictableTransactionError, Transactional};
+
+    use crate::traits::{BidirIndex, IndexType};
+
+    #[derive(Debug)]
+    pub enum SledHashIndexError<Left, Right> {
+        DuplicateRight(Left, Right, Right),
+        DuplicateLeft(Right, Left, Left),
+        SledError(sled::Error),
+        SerializationError(bincode::Error),
+    }
+
+    pub struct SledHashIndex<
+        Left: IndexType + Serialize + DeserializeOwned,
+        Right: IndexType + Serialize + DeserializeOwned,
+    > {
+        left_to_right: sled::Tree,
+        right_to_left: sled::Tree,
+        _phantom: std::marker::PhantomData<(Left, Right)>,
+    }
+
+    impl<
+            Left: IndexType + Serialize + DeserializeOwned,
+            Right: IndexType + Serialize + DeserializeOwned,
+        > SledHashIndex<Left, Right>
+    {
+        pub fn new(db: &sled::Db) -> Result<Self, sled::Error> {
+            Ok(Self {
+                left_to_right: db.open_tree("left_to_right")?,
+                right_to_left: db.open_tree("right_to_left")?,
+                _phantom: std::marker::PhantomData,
+            })
+        }
+    }
+
+    impl<
+            Left: IndexType + Serialize + DeserializeOwned,
+            Right: IndexType + Serialize + DeserializeOwned,
+        > BidirIndex for SledHashIndex<Left, Right>
+    {
+        type Left = Left;
+        type Right = Right;
+        type Error = SledHashIndexError<Left, Right>;
+
+        fn set(&mut self, left: Self::Left, right: Self::Right) -> Result<(), Self::Error> {
+            let left_bytes =
+                bincode::serialize(&left).map_err(|e| SledHashIndexError::SerializationError(e))?;
+            let right_bytes = bincode::serialize(&right)
+                .map_err(|e| SledHashIndexError::SerializationError(e))?;
+
+            (&self.left_to_right, &self.right_to_left)
+                .transaction(|(left_to_right, right_to_left)| {
+                    match left_to_right.get(left_bytes.as_slice())? {
+                        None => {
+                            left_to_right.insert(left_bytes.as_slice(), right_bytes.as_slice())?;
+                            Ok(())
+                        }
+                        Some(existing_right) => {
+                            let existing_right =
+                                bincode::deserialize(&existing_right).map_err(|e| {
+                                    ConflictableTransactionError::Abort(
+                                        SledHashIndexError::SerializationError(e),
+                                    )
+                                })?;
+
+                            Err(ConflictableTransactionError::Abort(
+                                SledHashIndexError::DuplicateRight(
+                                    left.clone(),
+                                    existing_right,
+                                    right.clone(),
+                                ),
+                            ))
+                        }
+                    }?;
+
+                    match right_to_left.get(right_bytes.as_slice())? {
+                        None => {
+                            right_to_left.insert(right_bytes.as_slice(), left_bytes.as_slice())?;
+                            Ok(())
+                        }
+                        Some(existing_left) => {
+                            let existing_left =
+                                bincode::deserialize(&existing_left).map_err(|e| {
+                                    ConflictableTransactionError::Abort(
+                                        SledHashIndexError::SerializationError(e),
+                                    )
+                                })?;
+
+                            Err(ConflictableTransactionError::Abort(
+                                SledHashIndexError::DuplicateLeft(
+                                    right.clone(),
+                                    existing_left,
+                                    left.clone(),
+                                ),
+                            ))
+                        }
+                    }?;
+
+                    Ok(())
+                })
+                .map_err(|e| match e {
+                    sled::transaction::TransactionError::Abort(e) => e,
+                    sled::transaction::TransactionError::Storage(e) => {
+                        SledHashIndexError::SledError(e)
+                    }
+                })
+        }
+
+        fn left_to_right(&self, left: &Self::Left) -> Result<Option<Self::Right>, Self::Error> {
+            let left =
+                bincode::serialize(&left).map_err(|e| SledHashIndexError::SerializationError(e))?;
+
+            self.left_to_right
+                .get(&left)
+                .map_err(|e| SledHashIndexError::SledError(e))?
+                .map(|right| {
+                    bincode::deserialize(right.as_ref())
+                        .map_err(|e| SledHashIndexError::SerializationError(e))
+                })
+                .transpose()
+        }
+
+        fn right_to_left(&self, right: &Self::Right) -> Result<Option<Self::Left>, Self::Error> {
+            let right = bincode::serialize(&right)
+                .map_err(|e| SledHashIndexError::SerializationError(e))?;
+
+            self.right_to_left
+                .get(&right)
+                .map_err(|e| SledHashIndexError::SledError(e))?
+                .map(|left| {
+                    bincode::deserialize(left.as_ref())
+                        .map_err(|e| SledHashIndexError::SerializationError(e))
+                })
+                .transpose()
+        }
+    }
+}
+
+#[cfg(feature = "rdf")]
+pub use rdf::*;

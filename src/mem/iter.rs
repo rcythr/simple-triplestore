@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     EdgeOrder, PropsTriple, Triple,
 };
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn iter_impl(
@@ -32,7 +32,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStoreIter<Id, NodeProps, EdgeProps>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property> TripleStoreIter<Id, NodeProps, EdgeProps>
     for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn vertices(&self) -> Result<impl Iterator<Item = Id>, Self::Error> {
@@ -111,7 +111,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStoreIter<Id, N
     }
 }
 
-impl<Id: IdType, NodeProps: Property + PartialEq, EdgeProps: Property + PartialEq>
+impl<Id: ConcreteIdType, NodeProps: Property + PartialEq, EdgeProps: Property + PartialEq>
     TripleStoreIntoIter<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn into_iter_nodes(

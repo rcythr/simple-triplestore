@@ -2,13 +2,13 @@ use std::borrow::Borrow;
 
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     Triple,
 };
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     MemTripleStore<Id, NodeProps, EdgeProps>
 {
     // Gets the set of outgoing edges from a given node.
@@ -36,7 +36,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreRemove<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn remove_node(&mut self, node: impl Borrow<Id>) -> Result<(), Self::Error> {

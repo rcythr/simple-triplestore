@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    traits::{IdType, Property},
+    traits::{ConcreteIdType, Property},
     IdGenerator,
 };
 use std::{
@@ -108,7 +108,7 @@ mod set;
 ///
 /// # Ok::<(), QueryError<(), ()>>(())
 /// ```
-pub struct MemTripleStore<Id: IdType, NodeProps: Property, EdgeProps: Property> {
+pub struct MemTripleStore<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property> {
     node_props: BTreeMap<Id, NodeProps>,
     edge_props: BTreeMap<Id, EdgeProps>,
     spo_data: BTreeMap<Id::TripleByteArrayType, Id>,
@@ -117,7 +117,7 @@ pub struct MemTripleStore<Id: IdType, NodeProps: Property, EdgeProps: Property> 
     id_generator: Box<dyn IdGenerator<Id>>,
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property> std::fmt::Debug
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property> std::fmt::Debug
     for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -228,7 +228,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property> std::fmt::Debug
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property> PartialEq
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property> PartialEq
     for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn eq(&self, other: &Self) -> bool {
@@ -285,7 +285,7 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property> PartialEq
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     MemTripleStore<Id, NodeProps, EdgeProps>
 {
     pub fn new(id_generator: impl IdGenerator<Id> + 'static) -> Self {
@@ -306,13 +306,89 @@ impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
     }
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStore<Id, NodeProps, EdgeProps>
-    for MemTripleStore<Id, NodeProps, EdgeProps>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
+    TripleStore<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
 }
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property> TripleStoreError
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property> TripleStoreError
     for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     type Error = ();
 }
+
+#[cfg(feature = "rdf")]
+mod rdf {
+    use std::collections::HashMap;
+
+    use crate::traits::{BidirIndex, IndexType};
+
+    #[derive(Debug)]
+    pub enum MemHashIndexError<Left, Right> {
+        DuplicateRight(Left, Right, Right),
+        DuplicateLeft(Right, Left, Left),
+    }
+
+    pub struct MemHashIndex<Left: IndexType, Right: IndexType> {
+        left_to_right: HashMap<Left, Right>,
+        right_to_left: HashMap<Right, Left>,
+    }
+
+    impl<Left: IndexType, Right: IndexType> MemHashIndex<Left, Right> {
+        pub fn new() -> Self {
+            Self {
+                left_to_right: HashMap::new(),
+                right_to_left: HashMap::new(),
+            }
+        }
+    }
+
+    impl<Left: IndexType, Right: IndexType> BidirIndex for MemHashIndex<Left, Right> {
+        type Left = Left;
+        type Right = Right;
+        type Error = MemHashIndexError<Left, Right>;
+
+        fn set(&mut self, left: Self::Left, right: Self::Right) -> Result<(), Self::Error> {
+            match self.left_to_right.entry(left.clone()) {
+                std::collections::hash_map::Entry::Vacant(v) => {
+                    v.insert(right.clone());
+                    Ok(())
+                }
+                std::collections::hash_map::Entry::Occupied(o) => {
+                    Err(MemHashIndexError::DuplicateRight(
+                        o.key().clone(),
+                        right.clone(),
+                        o.get().clone(),
+                    ))
+                }
+            }?;
+
+            match self.right_to_left.entry(right.clone()) {
+                std::collections::hash_map::Entry::Vacant(v) => {
+                    v.insert(left.clone());
+                    Ok(())
+                }
+                std::collections::hash_map::Entry::Occupied(o) => {
+                    Err(MemHashIndexError::DuplicateLeft(
+                        o.key().clone(),
+                        left.clone(),
+                        o.get().clone(),
+                    ))
+                }
+            }?;
+
+            Ok(())
+        }
+
+        fn left_to_right(&self, left: &Self::Left) -> Result<Option<Self::Right>, Self::Error> {
+            Ok(self.left_to_right.get(left).cloned())
+        }
+
+        fn right_to_left(&self, right: &Self::Right) -> Result<Option<Self::Left>, Self::Error> {
+            Ok(self.right_to_left.get(right).cloned())
+        }
+    }
+}
+
+#[cfg(feature = "rdf")]
+pub use rdf::*;

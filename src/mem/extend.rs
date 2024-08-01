@@ -1,8 +1,8 @@
-use crate::{prelude::*, traits::IdType, traits::Property, ExtendError};
+use crate::{prelude::*, traits::ConcreteIdType, traits::Property, ExtendError};
 
 use super::MemTripleStore;
 
-impl<Id: IdType, NodeProps: Property, EdgeProps: Property>
+impl<Id: ConcreteIdType, NodeProps: Property, EdgeProps: Property>
     TripleStoreExtend<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn extend<E: std::fmt::Debug>(

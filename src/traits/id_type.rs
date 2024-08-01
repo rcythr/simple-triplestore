@@ -1,7 +1,11 @@
 use crate::Triple;
 
-pub trait IdType:
-    std::fmt::Debug
+pub trait IdType: std::fmt::Debug + PartialEq + Eq + Clone + std::hash::Hash {}
+impl<T: std::fmt::Debug + PartialEq + Eq + Clone + std::hash::Hash> IdType for T {}
+
+pub trait ConcreteIdType:
+    IdType
+    + std::fmt::Debug
     + std::fmt::Display
     + Clone
     + PartialEq

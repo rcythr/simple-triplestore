@@ -1,11 +1,11 @@
 use crate::{
-    traits::{IdType, Mergeable, Property},
+    traits::{ConcreteIdType, Mergeable, Property},
     MergeError, Triple,
 };
 
 use super::{MemTripleStore, TripleStore, TripleStoreMerge};
 
-impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
+impl<Id: ConcreteIdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
     MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn merge_edge_create_data(
@@ -29,7 +29,7 @@ impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeabl
     }
 }
 
-impl<Id: IdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
+impl<Id: ConcreteIdType, NodeProps: Property + Mergeable, EdgeProps: Property + Mergeable>
     TripleStoreMerge<Id, NodeProps, EdgeProps> for MemTripleStore<Id, NodeProps, EdgeProps>
 {
     fn merge<E: std::fmt::Debug>(

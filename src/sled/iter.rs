@@ -1,18 +1,18 @@
 use serde::{de::DeserializeOwned, Serialize};
 use sled::IVec;
 
-use crate::{prelude::*, traits::IdType, traits::Property};
+use crate::{prelude::*, traits::ConcreteIdType, traits::Property};
 use crate::{EdgeOrder, PropsTriple, Triple};
 
 use super::SledTripleStore;
 use super::SledTripleStoreError;
 
-fn decode_id<Id: IdType>(id: IVec) -> Result<Id, SledTripleStoreError> {
+fn decode_id<Id: ConcreteIdType>(id: IVec) -> Result<Id, SledTripleStoreError> {
     Id::try_from_be_bytes(id.as_ref()).ok_or(SledTripleStoreError::KeySizeError)
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > SledTripleStore<Id, NodeProps, EdgeProps>
@@ -67,7 +67,7 @@ impl<
     }
 }
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreIter<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
@@ -218,7 +218,7 @@ impl<
 }
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Serialize + DeserializeOwned,
         EdgeProps: Property + Serialize + DeserializeOwned,
     > TripleStoreIntoIter<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>

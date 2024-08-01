@@ -1,8 +1,11 @@
 use ulid::Ulid;
 
-use crate::{traits::IdGenerator, traits::IdType, Triple};
+use crate::{
+    traits::{ConcreteIdType, IdGenerator},
+    Triple,
+};
 
-impl IdType for Ulid {
+impl ConcreteIdType for Ulid {
     type ByteArrayType = [u8; 16];
     type TripleByteArrayType = [u8; 48];
 
@@ -127,7 +130,7 @@ impl IdGenerator<Ulid> for UlidIdGenerator {
 
 #[cfg(test)]
 mod test {
-    use crate::{traits::IdType, Triple};
+    use crate::{traits::ConcreteIdType, Triple};
     use std::ops::Bound::Included;
     use ulid::Ulid;
 

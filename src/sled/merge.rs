@@ -3,14 +3,14 @@ use sled::transaction::{ConflictableTransactionError, Transactional};
 
 use crate::{
     prelude::*,
-    traits::{IdType, Mergeable, Property},
+    traits::{ConcreteIdType, Mergeable, Property},
     MergeError, Triple,
 };
 
 use super::{SledTripleStore, SledTripleStoreError};
 
 impl<
-        Id: IdType,
+        Id: ConcreteIdType,
         NodeProps: Property + Mergeable + Serialize + DeserializeOwned,
         EdgeProps: Property + Mergeable + Serialize + DeserializeOwned,
     > TripleStoreMerge<Id, NodeProps, EdgeProps> for SledTripleStore<Id, NodeProps, EdgeProps>
