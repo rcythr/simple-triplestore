@@ -107,7 +107,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 /// The following is used throught all of the examples below:
 /// ```
 /// use ulid::Ulid;
-/// use simple_triplestore::prelude::*;
+/// use simple_triplestore::{prelude::*, Query, query};
 /// let a = Ulid(1);
 /// let b = Ulid(2);
 /// let c = Ulid(3);
@@ -121,7 +121,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// assert_eq!(
@@ -135,7 +135,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// assert_eq!(
@@ -149,7 +149,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let b = Ulid(2);
 /// # let c = Ulid(3);
 /// assert_eq!(
@@ -163,7 +163,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// # let c = Ulid(3);
@@ -178,7 +178,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// # let c = Ulid(3);
@@ -194,7 +194,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// assert_eq!(
@@ -208,7 +208,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// # let c = Ulid(3);
@@ -224,7 +224,7 @@ impl<Id: traits::IdType, I: IntoIterator<Item = Triple<Id>>> From<I> for Query<I
 ///
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, Query, query};
 /// # let a = Ulid(1);
 /// # let b = Ulid(2);
 /// # let c = Ulid(3);

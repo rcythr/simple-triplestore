@@ -21,7 +21,7 @@ mod set;
 /// # Example
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, MemTripleStore, PropsTriple, Triple, UlidIdGenerator, EdgeOrder};
 /// let mut db = MemTripleStore::new(UlidIdGenerator::new());
 ///
 /// // Get some identifiers. These will probably come from an index such as `Readable Name -> Ulid`
@@ -72,7 +72,7 @@ mod set;
 /// We can do arbitrary queries, e.g.:
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, MemTripleStore, PropsTriple, Triple, UlidIdGenerator, EdgeOrder, QueryError};
 /// # let mut db = MemTripleStore::new(UlidIdGenerator::new());
 /// # let node_1 = Ulid(123);
 /// # let node_2 = Ulid(456);

@@ -42,7 +42,7 @@ impl From<bincode::Error> for SledTripleStoreError {
 /// # Example
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, SledTripleStore, PropsTriple, Triple, UlidIdGenerator, EdgeOrder};
 /// let temp_dir = tempdir::TempDir::new("sled").unwrap();
 /// let sled_db = sled::open(temp_dir.path()).unwrap();
 ///
@@ -96,7 +96,7 @@ impl From<bincode::Error> for SledTripleStoreError {
 /// We can do arbitrary queries, e.g.:
 /// ```
 /// # use ulid::Ulid;
-/// # use simple_triplestore::prelude::*;
+/// # use simple_triplestore::{prelude::*, SledTripleStore, PropsTriple, Triple, UlidIdGenerator, EdgeOrder, QueryError};
 /// # let temp_dir = tempdir::TempDir::new("sled").unwrap();
 /// # let sled_db = sled::open(temp_dir.path()).unwrap();
 /// # let mut db = SledTripleStore::new(&sled_db, UlidIdGenerator::new()).unwrap();
