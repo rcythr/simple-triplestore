@@ -1,3 +1,8 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    hash::{Hash, Hasher},
+};
+
 use crate::{
     prelude::*,
     traits::{IdType, Property},
@@ -197,7 +202,128 @@ impl<
     > std::fmt::Debug for SledTripleStore<Id, NodeProps, EdgeProps>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!();
+        f.write_str("SledTripleStore:\n")?;
+        f.write_str(" Node Properties:\n")?;
+        for r in self.node_props.iter() {
+            let (id, node_props) = r.map_err(|_| std::fmt::Error)?;
+            f.write_fmt(format_args!(
+                "  {} -> {:?}\n",
+                Id::try_from_be_bytes(&id).ok_or(std::fmt::Error)?,
+                bincode::deserialize(&node_props).map_err(|_| std::fmt::Error)?
+            ))?;
+        }
+
+        // When printing edge properties, we display the edge hash instead of the Ulid because it
+        // will be stable across graphs whereas the Ulid is not stable.
+        //
+        // Any of the edge hashes would work here, but spo is chosen arbitrarily.
+        f.write_str(" Edge Properties:\n")?;
+
+        // Construct: [Ulid] -> [u64] (SPO Edge hash)
+        let ulid_to_spo_edge_hash = self
+            .spo_data
+            .iter()
+            .map(|r| r.map_err(|_| std::fmt::Error))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|(k, v)| {
+                let hash;
+                {
+                    let mut hash_builder = std::hash::DefaultHasher::new();
+                    k.as_ref().hash(&mut hash_builder);
+                    hash = hash_builder.finish();
+                }
+                (v.clone(), hash)
+            })
+            .collect::<HashMap<_, _>>();
+
+        // Use [Ulid] -> u64 on the keys of edge_props: [Ulid -> & Edge Properties] to produce:
+        //
+        //  [u64] -> [& Edge Properties]
+        //
+        // By using BTreeMap here, we get a nice print order.
+        let hash_to_edge_data = self
+            .edge_props
+            .iter()
+            .map(|r| r.map_err(|_| std::fmt::Error))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|(ulid, edge_data)| match ulid_to_spo_edge_hash.get(&ulid) {
+                Some(hash) => (Some(hash), edge_data),
+                None => (None, edge_data),
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        for (hash, node_props) in hash_to_edge_data {
+            match hash {
+                None => {
+                    f.write_fmt(format_args!("  _ -> {:?}\n", node_props))?;
+                }
+                Some(hash) => {
+                    f.write_fmt(format_args!("  {:#016x} -> {:?}\n", hash, node_props))?;
+                }
+            }
+        }
+
+        f.write_str(" Edges (SPO):\n")?;
+        for r in self.spo_data.iter() {
+            let (triple, ulid) = r.map_err(|_| std::fmt::Error)?;
+
+            let triple =
+                Id::decode_spo_triple(&triple[..].try_into().map_err(|_| std::fmt::Error)?);
+            f.write_fmt(format_args!(
+                "  ({}, {}, {}) -> ",
+                triple.sub, triple.pred, triple.obj
+            ))?;
+            match ulid_to_spo_edge_hash.get(&ulid) {
+                Some(hash) => {
+                    f.write_fmt(format_args!("{:#016x}\n", hash))?;
+                }
+                None => {
+                    f.write_str("_\n")?;
+                }
+            }
+        }
+
+        f.write_str(" Edges (POS):\n")?;
+        for r in self.pos_data.iter() {
+            let (triple, ulid) = r.map_err(|_| std::fmt::Error)?;
+
+            let triple =
+                Id::decode_pos_triple(&triple[..].try_into().map_err(|_| std::fmt::Error)?);
+            f.write_fmt(format_args!(
+                "  ({}, {}, {}) -> ",
+                triple.sub, triple.pred, triple.obj
+            ))?;
+            match ulid_to_spo_edge_hash.get(&ulid) {
+                Some(hash) => {
+                    f.write_fmt(format_args!("{:#016x}\n", hash))?;
+                }
+                None => {
+                    f.write_str("_\n")?;
+                }
+            }
+        }
+
+        f.write_str(" Edges (OSP):\n")?;
+        for r in self.osp_data.iter() {
+            let (triple, ulid) = r.map_err(|_| std::fmt::Error)?;
+
+            let triple =
+                Id::decode_osp_triple(&triple[..].try_into().map_err(|_| std::fmt::Error)?);
+            f.write_fmt(format_args!(
+                "  ({}, {}, {}) -> ",
+                triple.sub, triple.pred, triple.obj
+            ))?;
+            match ulid_to_spo_edge_hash.get(&ulid) {
+                Some(hash) => {
+                    f.write_fmt(format_args!("{:#016x}\n", hash))?;
+                }
+                None => {
+                    f.write_str("_\n")?;
+                }
+            }
+        }
         Ok(())
     }
 }
