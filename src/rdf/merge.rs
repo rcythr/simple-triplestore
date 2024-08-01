@@ -37,8 +37,10 @@ impl<
     }
 
     fn merge_node(&mut self, entity: Entity, props: NodeProps) -> Result<(), Self::Error> {
+        let id = self.lookup_or_create_entity(&entity)?;
+
         self.graph
-            .merge_node(self.lookup_entity(&entity)?, props)
+            .merge_node(id, props)
             .map_err(|e| RdfTripleStoreError::GraphStorageError(e))
     }
 
@@ -47,8 +49,9 @@ impl<
         triple: crate::Triple<Entity>,
         props: EdgeProps,
     ) -> Result<(), Self::Error> {
+        let triple = triple.try_map(|entity| self.lookup_or_create_entity(&entity))?;
         self.graph
-            .merge_edge(triple.try_map(|entity| self.lookup_entity(&entity))?, props)
+            .merge_edge(triple, props)
             .map_err(|e| RdfTripleStoreError::GraphStorageError(e))
     }
 }

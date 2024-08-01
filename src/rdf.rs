@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ulid::Ulid;
 
 use crate::traits::{BidirIndex, Property, TripleStore, TripleStoreError};
@@ -17,10 +15,29 @@ enum Entity {
     Ulid(Ulid),
 }
 
+impl From<String> for Entity {
+    fn from(value: String) -> Self {
+        Entity::String(value)
+    }
+}
+
+impl From<&str> for Entity {
+    fn from(value: &str) -> Self {
+        Entity::String(value.to_string())
+    }
+}
+
+impl From<Ulid> for Entity {
+    fn from(value: Ulid) -> Self {
+        Entity::Ulid(value)
+    }
+}
+
 #[derive(Debug)]
 enum RdfTripleStoreError<NameIndexStorageError, GraphStorageError> {
     NameIndexStorageError(NameIndexStorageError),
     GraphStorageError(GraphStorageError),
+    #[allow(dead_code)]
     NameNotFound(String),
 }
 
@@ -47,6 +64,31 @@ impl<
             name_index,
             graph,
             _phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn lookup_or_create_entity(
+        &mut self,
+        entity: &Entity,
+    ) -> Result<Ulid, RdfTripleStoreError<NameIndex::Error, TripleStorage::Error>> {
+        match entity {
+            Entity::String(s) => {
+                let result = self
+                    .name_index
+                    .left_to_right(&s)
+                    .map_err(|e| RdfTripleStoreError::NameIndexStorageError(e))?;
+
+                if let Some(id) = result {
+                    Ok(id)
+                } else {
+                    let id = Ulid::new();
+                    self.name_index
+                        .set(s.clone(), id)
+                        .map_err(|e| RdfTripleStoreError::NameIndexStorageError(e))?;
+                    Ok(id)
+                }
+            }
+            Entity::Ulid(id) => Ok(id.clone()),
         }
     }
 
@@ -102,9 +144,12 @@ impl<
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use ulid::Ulid;
 
-    use crate::{MemTripleStore, UlidIdGenerator};
+    use crate::traits::{TripleStoreInsert, TripleStoreIter};
+    use crate::{MemTripleStore, PropsTriple, Triple, UlidIdGenerator};
 
     use crate::mem::MemHashIndex;
 
@@ -112,9 +157,56 @@ mod test {
 
     #[test]
     fn test_new() {
-        let rdf_graph = RdfTripleStore::new(
+        let mut rdf_graph = RdfTripleStore::new(
             MemHashIndex::new(),
-            MemTripleStore::<Ulid, (), ()>::new(UlidIdGenerator::new()),
+            MemTripleStore::new(UlidIdGenerator::new()),
         );
+
+        let node_3 = Ulid::new();
+        rdf_graph.insert_node("foo".into(), 1).unwrap();
+        rdf_graph.insert_node("bar".into(), 2).unwrap();
+        rdf_graph.insert_node(node_3.into(), 3).unwrap();
+
+        rdf_graph
+            .insert_edge(
+                Triple {
+                    sub: "foo".into(),
+                    pred: "knows".into(),
+                    obj: "bar".into(),
+                },
+                123,
+            )
+            .unwrap();
+
+        rdf_graph
+            .insert_edge(
+                Triple {
+                    sub: "bar".into(),
+                    pred: "knows".into(),
+                    obj: node_3.into(),
+                },
+                456,
+            )
+            .unwrap();
+
+        assert_eq!(
+            rdf_graph
+                .iter_edges_with_props(crate::EdgeOrder::SPO)
+                .collect::<Result<HashSet<_>, _>>()
+                .unwrap(),
+            [
+                PropsTriple {
+                    sub: ("foo".into(), 1),
+                    pred: ("knows".into(), 123),
+                    obj: ("bar".into(), 2)
+                },
+                PropsTriple {
+                    sub: ("bar".into(), 2),
+                    pred: ("knows".into(), 456),
+                    obj: (node_3.into(), 3)
+                }
+            ]
+            .into()
+        )
     }
 }

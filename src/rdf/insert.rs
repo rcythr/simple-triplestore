@@ -14,14 +14,16 @@ impl<
     for RdfTripleStore<NodeProps, EdgeProps, NameIndex, TripleStorage>
 {
     fn insert_node(&mut self, entity: Entity, props: NodeProps) -> Result<(), Self::Error> {
+        let id = self.lookup_or_create_entity(&entity)?;
         self.graph
-            .insert_node(self.lookup_entity(&entity)?, props)
+            .insert_node(id, props)
             .map_err(|e| RdfTripleStoreError::GraphStorageError(e))
     }
 
     fn insert_edge(&mut self, triple: Triple<Entity>, props: EdgeProps) -> Result<(), Self::Error> {
+        let triple = triple.try_map(|entity| self.lookup_or_create_entity(&entity))?;
         self.graph
-            .insert_edge(triple.try_map(|entity| self.lookup_entity(&entity))?, props)
+            .insert_edge(triple, props)
             .map_err(|e| RdfTripleStoreError::GraphStorageError(e))
     }
 }

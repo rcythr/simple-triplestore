@@ -11,7 +11,7 @@ pub struct Triple<Id: IdType> {
 }
 
 impl<Id: IdType> Triple<Id> {
-    pub fn map<O: IdType>(self, f: impl Fn(Id) -> O) -> Triple<O> {
+    pub fn map<O: IdType>(self, mut f: impl FnMut(Id) -> O) -> Triple<O> {
         Triple {
             sub: f(self.sub),
             pred: f(self.pred),
@@ -19,7 +19,10 @@ impl<Id: IdType> Triple<Id> {
         }
     }
 
-    pub fn try_map<E, O: IdType>(self, f: impl Fn(Id) -> Result<O, E>) -> Result<Triple<O>, E> {
+    pub fn try_map<E, O: IdType>(
+        self,
+        mut f: impl FnMut(Id) -> Result<O, E>,
+    ) -> Result<Triple<O>, E> {
         Ok(Triple {
             sub: f(self.sub)?,
             pred: f(self.pred)?,
@@ -50,7 +53,7 @@ impl<Id: ConcreteIdType> PartialOrd for Triple<Id> {
 }
 
 /// A triple along with the associated NodeProps and EdgeProps.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PropsTriple<Id: IdType, NodeProps: Property, EdgeProps: Property> {
     pub sub: (Id, NodeProps),
     pub pred: (Id, EdgeProps),
