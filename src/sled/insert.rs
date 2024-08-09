@@ -3,7 +3,7 @@ use sled::Transactional;
 
 use crate::{
     prelude::*,
-    traits::{ConcreteIdType, Property},
+    traits::{ConcreteIdType, Property, TripleStoreInsertBatch},
     Triple,
 };
 
@@ -60,6 +60,66 @@ impl<
                     SledTripleStoreError::SledError(e)
                 }
             })?;
+
+        Ok(())
+    }
+}
+
+impl<
+        Id: ConcreteIdType,
+        NodeProps: Property + Serialize + DeserializeOwned,
+        EdgeProps: Property + Serialize + DeserializeOwned,
+    > TripleStoreInsertBatch<Id, NodeProps, EdgeProps>
+    for SledTripleStore<Id, NodeProps, EdgeProps>
+{
+    fn insert_batch<T, U>(&mut self, nodes: T, edges: U) -> Result<(), Self::Error>
+    where
+        T: Iterator<Item = (Id, NodeProps)>,
+        U: Iterator<Item = (Triple<Id>, EdgeProps)>,
+    {
+        // Insert the Nodes
+        {
+            let mut node_props_batch = sled::Batch::default();
+            for (node, props) in nodes {
+                let key_bytes = &node.to_be_bytes();
+                let data_bytes = bincode::serialize(&props)?;
+                node_props_batch.insert(key_bytes.as_ref(), data_bytes);
+            }
+            self.node_props.apply_batch(node_props_batch)?;
+        }
+
+        // Insert the Edges
+        {
+            let mut edge_props_batch = sled::Batch::default();
+            let mut spo_batch = sled::Batch::default();
+            let mut pos_batch = sled::Batch::default();
+            let mut osp_batch = sled::Batch::default();
+            for (triple, props) in edges {
+                let prop_key = self.id_generator.fresh();
+                let prop_key_bytes = prop_key.to_be_bytes();
+
+                let data_bytes = bincode::serialize(&props)?;
+
+                edge_props_batch.insert(prop_key_bytes.as_ref(), data_bytes.as_slice());
+                spo_batch.insert(
+                    Id::encode_spo_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                );
+                pos_batch.insert(
+                    Id::encode_pos_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                );
+                osp_batch.insert(
+                    Id::encode_osp_triple(&triple).as_ref(),
+                    prop_key_bytes.as_ref(),
+                );
+            }
+
+            self.edge_props.apply_batch(edge_props_batch)?;
+            self.spo_data.apply_batch(spo_batch)?;
+            self.pos_data.apply_batch(pos_batch)?;
+            self.osp_data.apply_batch(osp_batch)?;
+        }
 
         Ok(())
     }

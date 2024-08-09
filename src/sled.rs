@@ -145,7 +145,7 @@ pub struct SledTripleStore<
     spo_data: sled::Tree,
     pos_data: sled::Tree,
     osp_data: sled::Tree,
-    id_generator: Box<dyn IdGenerator<Id>>,
+    id_generator: Box<dyn IdGenerator<Id> + Send + Sync>,
 }
 
 impl<

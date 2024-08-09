@@ -355,11 +355,15 @@ mod rdf {
                     Ok(())
                 }
                 std::collections::hash_map::Entry::Occupied(o) => {
-                    Err(MemHashIndexError::DuplicateRight(
-                        o.key().clone(),
-                        right.clone(),
-                        o.get().clone(),
-                    ))
+                    if right != *o.get() {
+                        Err(MemHashIndexError::DuplicateRight(
+                            o.key().clone(),
+                            right.clone(),
+                            o.get().clone(),
+                        ))
+                    } else {
+                        Ok(())
+                    }
                 }
             }?;
 
@@ -369,11 +373,15 @@ mod rdf {
                     Ok(())
                 }
                 std::collections::hash_map::Entry::Occupied(o) => {
-                    Err(MemHashIndexError::DuplicateLeft(
-                        o.key().clone(),
-                        left.clone(),
-                        o.get().clone(),
-                    ))
+                    if left != *o.get() {
+                        Err(MemHashIndexError::DuplicateLeft(
+                            o.key().clone(),
+                            left.clone(),
+                            o.get().clone(),
+                        ))
+                    } else {
+                        Ok(())
+                    }
                 }
             }?;
 

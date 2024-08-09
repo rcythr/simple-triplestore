@@ -10,7 +10,7 @@ mod query;
 mod remove;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-enum Entity {
+pub enum Entity {
     String(String),
     Ulid(Ulid),
 }
@@ -34,14 +34,14 @@ impl From<Ulid> for Entity {
 }
 
 #[derive(Debug)]
-enum RdfTripleStoreError<NameIndexStorageError, GraphStorageError> {
+pub enum RdfTripleStoreError<NameIndexStorageError, GraphStorageError> {
     NameIndexStorageError(NameIndexStorageError),
     GraphStorageError(GraphStorageError),
     #[allow(dead_code)]
     NameNotFound(String),
 }
 
-struct RdfTripleStore<
+pub struct RdfTripleStore<
     NodeProps: Property,
     EdgeProps: Property,
     NameIndex: BidirIndex<Left = String, Right = Ulid>,
@@ -65,6 +65,22 @@ impl<
             graph,
             _phantom: std::marker::PhantomData,
         }
+    }
+
+    pub fn get_name_index(&self) -> &NameIndex {
+        &self.name_index
+    }
+
+    pub fn get_graph(&self) -> &TripleStorage {
+        &self.graph
+    }
+
+    pub fn get_name_index_mut(&mut self) -> &mut NameIndex {
+        &mut self.name_index
+    }
+
+    pub fn get_graph_mut(&mut self) -> &mut TripleStorage {
+        &mut self.graph
     }
 
     pub fn lookup_or_create_entity(
